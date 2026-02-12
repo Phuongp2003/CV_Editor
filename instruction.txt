@@ -122,11 +122,11 @@ Skills:
 
 Educations:
 - List educational background clearly.
-- Omit GPA if weak or not provided.
+- Must omit GPA if weak or not provided.
 - Optionally include notable academic achievements related to the role.
 
 Certificates:
-- List all the related certificates (all the language related certificates must be listed eg IELTS, TOEIC,...).
+- List all the related certificates else omit all (all the language related certificates must be listed eg IELTS, TOEIC,...).
 - Omit the certificate date if not provided
 - The Issuer and Description can be used interchangeably or combined if see fits
 

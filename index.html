@@ -24,9 +24,10 @@
       <!-- name of each tab group should be unique -->
       <div class="h-[calc(100vh-64px)] flex flex-col bg-base-200 p-6 rounded-lg shadow-md">
         <div class="flex flex-row gap-5">
-          <div class="tabs tabs-box mb-3">
+          <div class="tabs tabs-box mb-3 shadow-none">
             <input type="radio" name="my_tabs" class="tab" aria-label="CV Editor" checked="checked" />
             <input type="radio" name="my_tabs" class="tab" aria-label="AI" />
+            <input type="radio" name="my_tabs" class="tab" aria-label="Your own AI" />
           </div>
           <select id="language" class="select mt-1">
             <option selected>English</option>
@@ -235,6 +236,35 @@
           <option disabled selected value="">Pick a model if not will be default</option>
         </select> -->
           <p id="AI-error" class="text-red-500"></p>
+        </div>
+
+        <div id="your-own-ai" class="flex-1 overflow-auto px-5 hidden">
+          <h2 class="text-2xl font-bold mb-6">Prompt helper (for AI tools)</h2>
+          <div class="space-y-3 text-sm">
+              <p>
+                Use this prompt in your AI tool (ChatGPT, Gemini, etc.). It should reply with a single JSON code block
+                that you can paste back into this editor.
+              </p>
+              <textarea id="prompt-template" class="w-full font-mono text-xs textarea textarea-bordered" rows="8"
+                readonly></textarea>
+              <button id="copy-prompt-btn" class="btn btn-sm btn-outline">
+                Copy prompt
+              </button>
+
+              <div class="mt-2 space-y-2">
+                <label for="json-input" class="block font-medium">Paste CV JSON from AI
+                  (or other tools)</label>
+                <textarea id="json-input" class="w-full font-mono text-xs textarea textarea-bordered" rows="6"
+                  placeholder="{ &quot;cv&quot;: { ... }, &quot;coverLetter&quot;: { ... } }"></textarea>
+                <div class="flex gap-2 flex-col">
+                  <button id="load-json-text-btn" class="btn btn-primary">
+                    Load CV from JSON
+                  </button>
+                  <span class="text-xs text-error" id="json-text-error"></span>
+                </div>
+              </div>
+            </div>
+
         </div>
       </div>
 

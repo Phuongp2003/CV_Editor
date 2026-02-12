@@ -18,7 +18,11 @@ import {
   deleteProfile
 } from "./personalProfileHandler.js"
 
+import { customAIInitialize } from "./customAI.js";
+
 import HideShowKey from "./hideShowKey.js";
+
+import { readINS } from "../utils/readINS.js";
 
 const maxCharacters = 260; // limit the number of characters
 const padding = 5;
@@ -1234,7 +1238,7 @@ function downloadPDF() {
   generatePDF(obj.cv, true);
 }
 
-function loadHtml(obj) {
+export function loadHtml(obj) {
   // const obj = getObject()
   document.getElementById("name").value = obj.name;
   document.getElementById("email").value = obj.email;
@@ -1432,11 +1436,19 @@ const radios = document.querySelectorAll('input[name="my_tabs"]');
 radios[0].addEventListener("change", () => {
   document.querySelector("#cv-editor").classList.remove("hidden");
   document.querySelector("#ai-editor").classList.add("hidden");
+  document.querySelector("#your-own-ai").classList.add("hidden");
 });
 
 radios[1].addEventListener("change", () => {
   document.querySelector("#ai-editor").classList.remove("hidden");
   document.querySelector("#cv-editor").classList.add("hidden");
+  document.querySelector("#your-own-ai").classList.add("hidden");
+});
+
+radios[2].addEventListener("change", () => {
+  document.querySelector("#ai-editor").classList.add("hidden");
+  document.querySelector("#cv-editor").classList.add("hidden");
+  document.querySelector("#your-own-ai").classList.remove("hidden");
 });
 
 // Initialize image handler
@@ -1518,17 +1530,9 @@ initializeEventListeners();
 
 let INSprompt = "";
 
-try {
-  INSprompt = await fetch("instruction.txt").then((response) =>
-    response.text()
-  );
-  console.log("fetch INSprompt successfully");
-}
-catch (e) {
-  console.warn("fetch INSprompt failed");
-  console.warn(e)
-}
+INSprompt = await readINS();
 
+// console.log(INSprompt);
 
 async function generateAI() {
   const JD = document.getElementById("JD").value;
@@ -1891,7 +1895,7 @@ async function generateAI() {
 
 // fetchModels();
 
-function loadCoverLetter(coverLetter) {
+export function loadCoverLetter(coverLetter) {
   const {
     header,
     greeting,
@@ -1933,3 +1937,5 @@ function loadCoverLetter(coverLetter) {
     console.warn("Textarea with id 'coverLetterTextarea' not found.");
   }
 }
+
+customAIInitialize();
