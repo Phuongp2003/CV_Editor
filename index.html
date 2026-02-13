@@ -9,7 +9,8 @@
     <script src="./script/tailwinds.js"></script>
     <link rel="stylesheet" href="./style/style.css" />
     <link rel="stylesheet" href="./style/theme.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
+    <script src="./libs/jspdf.js"></script>
+    <script src="./libs/fileSaver.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -226,12 +227,6 @@
               <button id="generate-ai-btn" class="btn bg-blue-50 text-blue-500">AI Generation</button>
             </div>
           </div>
-          <h3 class="text-xl font-semibold mb-2 border-t pt-2">Cover Letter</h3>
-          <textarea
-            id="Cover-letter"
-            placeholder="Cover Letter will be generated here"
-            class="w-full p-3 border rounded mb-2 h-24"
-          ></textarea>
           <!-- <select class="select mt-5" id="ai-select">
           <option disabled selected value="">Pick a model if not will be default</option>
         </select> -->
@@ -269,14 +264,27 @@
       </div>
 
       <!-- CV Preview -->
-      <div class="bg-base-200 p-6 rounded-lg shadow-md overflow-auto flex flex-col h-[calc(100vh-64px)] gap-5">
+      <div class="bg-base-200 p-6 rounded-lg shadow-md overflow-auto flex flex-col h-[calc(100vh-64px)] gap-5 transition-all">
         <div id="cv-preview" class="display-none">
           <!-- Preview content will be generated here -->
         </div>
-        <object class="w-full h-full m-0 p-0 flex-1" id="pdf-embed" type="application/pdf"></object>
+        <object class="w-full h-full m-0 p-0 flex-1 transition-all min-h-[280px]" id="pdf-embed" type="application/pdf"></object>
+
+        <div class="collapse bg-base-100 border-base-300 border transition-all">
+          <input type="checkbox" />
+          <div class="collapse-title font-semibold">Cover Letter</div>
+          <div class="collapse-content text-sm">
+            <textarea
+            style="resize: none;"
+            id="Cover-letter"
+            placeholder="Cover Letter will be generated here"
+            class="w-full p-3 border rounded mb-2 h-24"
+          ></textarea>
+          </div>
+        </div>
+
         <div class="flex flex-row gap-5 flex-wrap">
           <button id="update-btn" class="btn bg-emerald-50 text-emerald-500">Update</button>
-          <button id="download-pdf-btn" class="btn bg-blue-50 text-blue-500">Download File</button>
           <button id="download-json-btn" class="btn bg-orange-50 text-orange-500">Save File</button>
           <fieldset class="">
             <div class="flex flex-row gap-1">
@@ -288,6 +296,10 @@
               <label class="fieldset-label err text-error"></label>
             </div>
           </fieldset>
+        </div>
+        <div class="flex flex-row gap-5 flex-wrap">
+          <button id="download-pdf-btn" class="btn bg-blue-50 text-blue-500">Download PDF</button>
+          <button id="download-docx-btn" class="btn bg-blue-50 text-blue-500">Download DOCX</button>
         </div>
       </div>
     </div>

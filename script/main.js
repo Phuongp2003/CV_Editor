@@ -24,6 +24,8 @@ import HideShowKey from "./hideShowKey.js";
 
 import { readINS } from "../utils/readINS.js";
 
+import { generateDocx } from "./docxHandler.js";
+
 const maxCharacters = 260; // limit the number of characters
 const padding = 5;
 const inputEle = document.querySelector("#input");
@@ -562,24 +564,26 @@ function generatePDF(obj, save = false) {
       temp += formatOutput(temp, website_placeholder, website);
       rawText = formatOutputNoDot(website_placeholder, website);
       if (website.includes("https://") || website.includes("www.")) {
-        doc.text(
-          deliminator,
-          ImageMarginRight + tempLength,
-          personalInfoY
-        )
+        if (content.includes(deliminator))
+          doc.text(
+            deliminator,
+            ImageMarginRight + tempLength,
+            personalInfoY
+          )
         doc.setTextColor("#115bca");
         doc.setDrawColor("#115bca");
+        const checkDelimiterWidth = content.includes(deliminator) ? deliminatorLength : 0
         doc.textWithLink(
           rawText,
-          ImageMarginRight + tempLength + deliminatorLength,
+          ImageMarginRight + tempLength + checkDelimiterWidth,
           personalInfoY,
           { url: website }
         );
         const textWidth = doc.getStringUnitWidth(rawText) * 10;
         doc.line(
-          ImageMarginRight + tempLength + deliminatorLength,
+          ImageMarginRight + tempLength + checkDelimiterWidth,
           personalInfoY,
-          ImageMarginRight + tempLength + deliminatorLength + textWidth,
+          ImageMarginRight + tempLength + checkDelimiterWidth + textWidth,
           personalInfoY
         );
         doc.setTextColor("#000000");
@@ -598,24 +602,26 @@ function generatePDF(obj, save = false) {
       rawText = formatOutputNoDot(linkedin_placeholder, linkedin);
       // console.log("linkedin", content, "|", temp);
       if (linkedin.includes("https://") || linkedin.includes("www.")) {
-        doc.text(
-          deliminator,
-          ImageMarginRight + tempLength,
-          personalInfoY
-        )
+        if (content.includes(deliminator))
+          doc.text(
+            deliminator,
+            ImageMarginRight + tempLength,
+            personalInfoY
+          )
         doc.setTextColor("#115bca");
         doc.setDrawColor("#115bca");
+        const checkDelimiterWidth = content.includes(deliminator) ? deliminatorLength : 0
         doc.textWithLink(
           rawText,
-          ImageMarginRight + tempLength + deliminatorLength,
+          ImageMarginRight + tempLength + checkDelimiterWidth,
           personalInfoY,
           { url: linkedin }
         );
         const textWidth = doc.getStringUnitWidth(rawText) * 10;
         doc.line(
-          ImageMarginRight + tempLength + deliminatorLength,
+          ImageMarginRight + tempLength + checkDelimiterWidth,
           personalInfoY,
-          ImageMarginRight + tempLength + deliminatorLength + textWidth,
+          ImageMarginRight + tempLength + checkDelimiterWidth + textWidth,
           personalInfoY
         );
         doc.setTextColor("#000000");
@@ -730,12 +736,13 @@ function generatePDF(obj, save = false) {
       tempLength = doc.getStringUnitWidth(temp) * 10;
       rawLength = doc.getStringUnitWidth(rawText) * 10;
       if (website.includes("https://") || website.includes("www.")) {
-        doc.text(
-          deliminator,
-          midPage - (fullLength / 2 - tempLength + rawLength),
-          personalInfoY,
-          { align: "right" }
-        )
+        if (content.includes(deliminator))
+          doc.text(
+            deliminator,
+            midPage - (fullLength / 2 - tempLength + rawLength),
+            personalInfoY,
+            { align: "right" }
+          )
         doc.setTextColor("#115bca");
         doc.setDrawColor("#115bca");
         doc.textWithLink(
@@ -769,12 +776,13 @@ function generatePDF(obj, save = false) {
       tempLength = doc.getStringUnitWidth(temp) * 10;
       rawLength = doc.getStringUnitWidth(rawText) * 10;
       if (linkedin.includes("https://") || linkedin.includes("www.")) {
-        doc.text(
-          deliminator,
-          midPage - (fullLength / 2 - tempLength + rawLength),
-          personalInfoY,
-          { align: "right" }
-        )
+        if (content.includes(deliminator))
+          doc.text(
+            deliminator,
+            midPage - (fullLength / 2 - tempLength + rawLength),
+            personalInfoY,
+            { align: "right" }
+          )
         doc.setTextColor("#115bca");
         doc.setDrawColor("#115bca");
         doc.textWithLink(
@@ -1238,6 +1246,11 @@ function downloadPDF() {
   generatePDF(obj.cv, true);
 }
 
+function downloadDocx() {
+  const obj = getObject();
+  generateDocx(obj.cv, true);
+}
+
 export function loadHtml(obj) {
   // const obj = getObject()
   document.getElementById("name").value = obj.name;
@@ -1492,6 +1505,9 @@ function initializeEventListeners() {
   document
     .getElementById("download-pdf-btn")
     ?.addEventListener("click", downloadPDF);
+  document
+    .getElementById("download-docx-btn")
+    ?.addEventListener("click", downloadDocx);
   document
     .getElementById("download-json-btn")
     ?.addEventListener("click", downloadJson);
