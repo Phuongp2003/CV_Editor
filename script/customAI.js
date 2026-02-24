@@ -27,6 +27,18 @@ function preprocessJsonText(raw) {
     return cleaned;
 }
 
+function formatJson(json){
+    const exps = json.cv.experiences || [];
+    exps.forEach(exp => {
+        exp.bullets = exp.bullets.join('\n')
+    })
+
+    const projects = json.cv.projects || [];
+    projects.forEach(proj => {
+        proj.bullets = proj.bullets.join('\n')
+    })
+}
+
 export async function customAIInitialize() {
     PROMPT_TEMPLATE.value = INSprompt.trim();
     if (COPY_PROMPT_BTN && PROMPT_TEMPLATE) {
@@ -63,6 +75,7 @@ export async function customAIInitialize() {
                         JSONTEXTERROR.textContent = "Invalid format: missing 'cv' field";
                     return;
                 }
+                formatJson(obj);
                 loadHtml(obj.cv);
                 if (obj.coverLetter) {
                     loadCoverLetter(obj.coverLetter);
