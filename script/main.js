@@ -854,13 +854,13 @@ function generatePDF(obj, save = false) {
 				doc.setDrawColor('#115bca');
         doc.textWithLink(
           rawText,
-          ImageMarginRight + tempLength + deliminatorLength,
+          ImageMarginRight + tempLength + checkDelimiterWidth,
           personalInfoY,
           { url: website }
         );
         const textWidth = doc.getStringUnitWidth(rawText) * 10;
         doc.line(
-          ImageMarginRight + tempLength + deliminatorLength,
+          ImageMarginRight + tempLength + checkDelimiterWidth,
           personalInfoY,
 					ImageMarginRight +
 						tempLength +
@@ -889,13 +889,13 @@ function generatePDF(obj, save = false) {
 				doc.setDrawColor('#115bca');
         doc.textWithLink(
           rawText,
-          ImageMarginRight + tempLength + deliminatorLength,
+          ImageMarginRight + tempLength + checkDelimiterWidth,
           personalInfoY,
           { url: linkedin }
         );
         const textWidth = doc.getStringUnitWidth(rawText) * 10;
         doc.line(
-          ImageMarginRight + tempLength + deliminatorLength,
+          ImageMarginRight + tempLength + checkDelimiterWidth,
           personalInfoY,
 					ImageMarginRight +
 						tempLength +
@@ -2583,7 +2583,7 @@ initializeFileLoader();
 
 // fetchModels();
 
-function loadCoverLetter(coverLetter) {
+export function loadCoverLetter(coverLetter) {
   const {
     header,
     greeting,

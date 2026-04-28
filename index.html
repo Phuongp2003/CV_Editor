@@ -9,7 +9,8 @@
     <script src="./script/tailwinds.js"></script>
     <link rel="stylesheet" href="./style/style.css" />
     <link rel="stylesheet" href="./style/theme.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
+    <script src="./libs/jspdf.js"></script>
+    <script src="./libs/fileSaver.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap"
@@ -316,7 +317,7 @@
       </div>
 
       <!-- CV Preview -->
-      <div class="bg-base-200 p-6 rounded-lg shadow-md overflow-auto flex flex-col h-[calc(100vh-64px)] gap-5">
+      <div class="bg-base-200 p-6 rounded-lg shadow-md overflow-auto flex flex-col h-[calc(100vh-64px)] gap-5 transition-all">
         <div id="cv-preview" class="display-none">
           <!-- Preview content will be generated here -->
         </div>
