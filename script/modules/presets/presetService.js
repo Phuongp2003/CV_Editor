@@ -8,12 +8,12 @@ const LANGUAGE_LABELS = {
     certificates: 'Certificates',
   },
   Vietnamese: {
-    summary: 'Tom tat',
-    skills: 'Ky nang',
-    experience: 'Kinh nghiem',
-    projects: 'Du an',
-    education: 'Hoc van',
-    certificates: 'Chung chi',
+    summary: 'Tóm tắt',
+    skills: 'Kỹ năng',
+    experience: 'Kinh nghiệm',
+    projects: 'Dự án',
+    education: 'Học vấn',
+    certificates: 'Chứng chỉ',
   },
 };
 
