@@ -3,29 +3,70 @@
  * Handles all image-related functionality including upload, preview, and PDF integration
  */
 
+import { validateImageMeta } from './modules/image/imageValidator.js';
+
 // Image state variables
 let profileImageData = null;
 let profileImageType = null;
+
+function getOrCreateImageErrorNode() {
+  const input = document.getElementById('profile-image');
+  if (!input) return null;
+
+  let errorNode = document.getElementById('image-upload-error');
+  if (errorNode) return errorNode;
+
+  const preview = document.getElementById('image-preview');
+  errorNode = document.createElement('p');
+  errorNode.id = 'image-upload-error';
+  errorNode.className = 'mt-1 text-sm text-red-600';
+  errorNode.setAttribute('role', 'alert');
+
+  if (preview && preview.parentNode) {
+    preview.parentNode.insertBefore(errorNode, preview);
+  } else if (input.parentNode) {
+    input.parentNode.appendChild(errorNode);
+  }
+
+  return errorNode;
+}
+
+function showImageError(message) {
+  const errorNode = getOrCreateImageErrorNode();
+  if (errorNode) {
+    errorNode.textContent = message;
+  }
+}
+
+function clearImageError() {
+  const errorNode = document.getElementById('image-upload-error');
+  if (errorNode) {
+    errorNode.textContent = '';
+  }
+}
 
 /**
  * Handles image file upload and validation
  * @param {Event} event - File input change event
  */
 export function handleImageUpload(event) {
-  const file = event.target.files[0];
+  const input = event?.target;
+  const file = input?.files?.[0];
   if (!file) return;
 
-  // Check if file is an image
-  if (!file.type.startsWith('image/')) {
-    alert('Please select a valid image file.');
+  const validation = validateImageMeta(file);
+  if (!validation.ok) {
+    if (validation.reason === 'UNSUPPORTED_TYPE') {
+      showImageError('Unsupported image type. Please upload PNG, JPEG, or WEBP.');
+    } else if (validation.reason === 'FILE_TOO_LARGE') {
+      showImageError('Image is too large. Maximum size is 5MB.');
+    } else {
+      showImageError('Unable to upload image. Please try another file.');
+    }
+    if (input) input.value = '';
     return;
   }
-
-  // Check file size (limit to 5MB)
-  if (file.size > 5 * 1024 * 1024) {
-    alert('Image size must be less than 5MB.');
-    return;
-  }
+  clearImageError();
 
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -38,6 +79,9 @@ export function handleImageUpload(event) {
     if (typeof AutoUpdate === 'function') {
       AutoUpdate();
     }
+  };
+  reader.onloadend = function() {
+    if (input) input.value = '';
   };
   
   reader.readAsDataURL(file);
@@ -76,6 +120,7 @@ export function removeProfileImage() {
   if (preview) preview.classList.add('hidden');
   if (removeBtn) removeBtn.classList.add('hidden');
   if (fileInput) fileInput.value = '';
+  clearImageError();
   
   // Update PDF if AutoUpdate function exists
   if (typeof AutoUpdate === 'function') {

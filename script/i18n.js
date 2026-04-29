@@ -82,6 +82,8 @@ const translations = {
     auto_update_label: "Auto update",
     cv_language_label: "CV language",
     ui_language_label: "UI language",
+    preset_config_label: "Section labels",
+    preset_config_btn: "Config preset",
     prompt_helper_title: "Prompt helper (for AI tools)",
     prompt_helper_description:
       "Use this prompt in your AI tool (ChatGPT, Gemini, etc.). It should reply with a single JSON code block that you can paste back into this editor.",
@@ -89,6 +91,7 @@ const translations = {
     json_input_label: "Paste CV JSON from AI (or other tools)",
     load_json_text_btn: "Load CV from JSON",
     font_label: "Font",
+    size_multiplier_label: "Size Multiplier",
     font_basic: "Basic (NotoSans)",
     font_arial: "Arial",
     font_custom: "Custom",
@@ -164,6 +167,8 @@ const translations = {
     auto_update_label: "Tự động cập nhật",
     cv_language_label: "Ngôn ngữ CV",
     ui_language_label: "Ngôn ngữ giao diện",
+    preset_config_label: "Nhãn tiêu đề mục",
+    preset_config_btn: "Cấu hình preset",
     prompt_helper_title: "Prompt gợi ý (dùng cho AI)",
     prompt_helper_description:
       "Dùng prompt này trong công cụ AI (ChatGPT, Gemini, ...). AI nên trả về duy nhất một code block JSON để bạn dán lại vào editor này.",
@@ -171,6 +176,7 @@ const translations = {
     json_input_label: "Dán JSON CV từ AI (hoặc công cụ khác)",
     load_json_text_btn: "Tải CV từ JSON",
     font_label: "Font",
+    size_multiplier_label: "Tỷ lệ cỡ chữ",
     font_basic: "Cơ bản (NotoSans)",
     font_arial: "Arial",
     font_custom: "Tùy chỉnh",

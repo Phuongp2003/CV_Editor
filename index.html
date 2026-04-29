@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      window.__APP_BASE_PATH__ = window.__APP_BASE_PATH__ || null;
+    </script>
     <title>CV Editor</title>
     <link rel="icon" type="image/x-icon" href="./assets/icon.svg" />
     <link rel="stylesheet" href="./style/daisy.css" />
@@ -38,12 +41,28 @@
           </select>
           </div>
           <div class="flex flex-col gap-1">
+            <span class="text-xs text-gray-600" data-i18n-key="preset_config_label">Section labels</span>
+            <button id="preset-config-btn" class="btn btn-sm" data-i18n-key="preset_config_btn">Config preset</button>
+          </div>
+          <div class="flex flex-col gap-1">
             <span class="text-xs text-gray-600" data-i18n-key="font_label">Font</span>
             <select id="font-select" class="select select-sm">
               <option value="notosans" selected data-i18n-key="font_basic">Basic (NotoSans)</option>
               <option value="arial" data-i18n-key="font_arial">Arial</option>
               <option value="custom" data-i18n-key="font_custom">Custom</option>
             </select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-xs text-gray-600" data-i18n-key="size_multiplier_label">Size Multiplier</span>
+            <input
+              type="number"
+              id="size-multiplier"
+              class="input input-sm w-28"
+              min="0.8"
+              max="1.6"
+              step="0.05"
+              value="1"
+            />
           </div>
           <div class="flex flex-col gap-1" id="custom-font-container" style="display: none;">
             <span class="text-xs text-gray-600" data-i18n-key="custom_font_label">Custom font</span>
@@ -354,6 +373,12 @@
               <button id="download-pdf-btn" class="text-blue-500 bg-blue-50 btn" data-i18n-key="download_pdf_btn">
                 Download File
               </button>
+              <button id="download-docx-btn" class="text-indigo-500 bg-indigo-50 btn">
+                Download DOCX
+              </button>
+              <button id="download-doc-btn" class="text-teal-500 bg-teal-50 btn">
+                Download DOC
+              </button>
               <button id="download-json-btn" class="text-orange-500 bg-orange-50 btn" data-i18n-key="download_json_btn">
                 Save File
               </button>
@@ -376,6 +401,16 @@
   <script src="./fonts/NotoSansKR-Regular-normal.js"></script>
   <script src="./fonts/NotoSansSC-Regular-normal.js"></script>
   <script src="./fonts/NotoSansSC-Bold-normal.js"></script>
+  <dialog id="preset-config-modal" class="modal">
+    <div class="modal-box">
+      <h3 class="text-lg font-bold" data-modal-title>Configure Section Labels</h3>
+      <div class="py-4" data-modal-body></div>
+      <div data-modal-footer></div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
   <script src="./script/main.js" type="module"></script>
 </body>
 
