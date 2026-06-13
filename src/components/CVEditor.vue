@@ -24,10 +24,23 @@ function handleEditSection(secKey: string) {
   }
 }
 
+async function loadSampleCV() {
+  try {
+    const baseUrl = import.meta.env.BASE_URL || '/'
+    const res = await fetch(`${baseUrl}sample.json`)
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+    const data = await res.json()
+    store.loadCv(data)
+  } catch (e) {
+    console.warn('Failed to fetch runtime sample.json, falling back to bundled data:', e)
+    store.loadCv(sampleData as any)
+  }
+}
+
 onMounted(() => {
   // Load sample data if no name is set yet (fresh start)
   if (!store.cvData.name) {
-    store.loadCv(sampleData as any)
+    loadSampleCV()
   }
 })
 </script>
@@ -42,7 +55,7 @@ onMounted(() => {
     <!-- Teleport "Reset to Sample" to navbar -->
     <Teleport defer to="#navbar-actions">
       <button
-        @click="store.loadCv(sampleData as any)"
+        @click="loadSampleCV"
         class="bg-theme-element hover:bg-theme-hover text-theme-text border border-theme-border px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer shadow-sm"
       >
         {{ t('reset_sample') }}
