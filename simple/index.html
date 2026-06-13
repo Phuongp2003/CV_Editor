@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      window.__APP_BASE_PATH__ = window.__APP_BASE_PATH__ || null;
+    </script>
+    <title>CV Editor</title>
+    <link rel="icon" type="image/x-icon" href="/simple/assets/icon.svg" />
+    <link rel="stylesheet" href="/simple/style/daisy.css" />
+    <script src="/simple/script/tailwinds.js"></script>
+    <link rel="stylesheet" href="/simple/style/style.css" />
+    <link rel="stylesheet" href="/simple/style/theme.css" />
+    <script src="/simple/libs/jspdf.js"></script>
+    <script src="/simple/libs/fileSaver.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet" />
+    <script type="module" crossorigin src="/assets/modulepreload-polyfill-Dezn_h7o.js"></script>
+  </head>
+
+  <body class="p-8 bg-base-100" data-theme="light">
+    <div class="grid overflow-hidden grid-cols-1 gap-8 lg:grid-cols-2">
+      <!-- Input Form -->
+      <!-- name of each tab group should be unique -->
+      <div class="h-[calc(100vh-64px)] flex flex-col bg-base-200 p-6 rounded-lg shadow-md justify-center">
+        <div class="flex flex-row gap-5 items-end mb-3">
+          <div class="flex flex-col gap-1">
+            <span class="text-xs text-gray-600" data-i18n-key="cv_language_label">CV language</span>
+            <select id="language" class="select select-sm">
+            <option selected>English</option>
+            <option>Vietnamese</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-xs text-gray-600" data-i18n-key="ui_language_label">UI language</span>
+            <select id="ui-language" class="select select-sm">
+              <option value="English" selected>English</option>
+              <option value="Vietnamese">Vietnamese</option>
+          </select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-xs text-gray-600" data-i18n-key="preset_config_label">Section labels</span>
+            <button id="preset-config-btn" class="btn btn-sm" data-i18n-key="preset_config_btn">Config preset</button>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-xs text-gray-600" data-i18n-key="font_label">Font</span>
+            <select id="font-select" class="select select-sm">
+              <option value="notosans" selected data-i18n-key="font_basic">Basic (NotoSans)</option>
+              <option value="arial" data-i18n-key="font_arial">Arial</option>
+              <option value="custom" data-i18n-key="font_custom">Custom</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-xs text-gray-600" data-i18n-key="size_multiplier_label">Size Multiplier</span>
+            <input
+              type="number"
+              id="size-multiplier"
+              class="input input-sm w-28"
+              min="0.8"
+              max="1.6"
+              step="0.05"
+              value="1"
+            />
+          </div>
+          <div class="flex flex-col gap-1" id="custom-font-container" style="display: none;">
+            <span class="text-xs text-gray-600" data-i18n-key="custom_font_label">Custom font</span>
+            <input type="text" id="custom-font-name" class="input input-sm" placeholder="e.g., Times New Roman, Roboto" data-i18n-placeholder="custom_font_placeholder" />
+          </div>
+        </div>
+
+        <div id="cv-editor" class="overflow-auto flex-1 px-5">
+          <h2 class="mb-2 text-2xl font-bold" data-i18n-key="cv_information_title">CV Information</h2>
+
+          <!-- Inline instructions -->
+          <section class="p-3 mb-6 text-sm text-gray-600 rounded bg-base-100">
+            <h3 class="mb-1 font-semibold" data-i18n-key="instructions_title">How to use</h3>
+            <ul class="space-y-1 list-disc list-inside">
+              <li data-i18n-key="instructions_fill_form">
+                Fill in your CV information on the left; the preview on the right updates automatically.
+              </li>
+              <li data-i18n-key="instructions_save_export">
+                Use the buttons on the right to save JSON data or export your CV as PDF/DOCX.
+              </li>
+              <li data-i18n-key="instructions_bullets_syntax">
+                For Experience/Projects bullets: use <code>#</code> for header, <code>-</code> for level 1, and
+                <code>+</code> for level 2.
+              </li>
+            </ul>
+          </section>
+
+          <!-- Personal Information -->
+          <section class="mb-8">
+            <h3 class="mb-4 text-xl font-semibold" data-i18n-key="personal_information_title">Personal Information</h3>
+            <div class="space-y-4">
+              <input type="text" id="name" class="p-2 w-full rounded border" placeholder="Full Name"
+                data-i18n-placeholder="full_name_placeholder" />
+              <input type="email" id="email" class="p-2 w-full rounded border" placeholder="Email"
+                data-i18n-placeholder="email_placeholder" />
+              <input type="text" id="location" class="p-2 w-full rounded border" placeholder="Location (optional)"
+                data-i18n-placeholder="location_placeholder" />
+              <input type="text" id="phone" class="p-2 w-full rounded border" placeholder="Phone Number"
+                data-i18n-placeholder="phone_placeholder" />
+              <div class="flex flex-row gap-4">
+                <input type="text" id="github_placeholder" class="p-2 w-full rounded border"
+                  placeholder="GitHub placeholder (optional)" data-i18n-placeholder="github_ph_placeholder" />
+                <input type="text" id="github" class="p-2 w-full rounded border" placeholder="GitHub URL (optional)"
+                  data-i18n-placeholder="github_url_placeholder" />
+              </div>
+             <div class="flex flex-row gap-4">
+                <input type="text" id="website_placeholder" class="p-2 w-full rounded border"
+                  placeholder="Website placeholder (optional)" data-i18n-placeholder="website_ph_placeholder" />
+                <input type="text" id="website" class="p-2 w-full rounded border"
+                  placeholder="Personal Website (optional)" data-i18n-placeholder="website_url_placeholder" />
+             </div>
+                           <div class="flex flex-row gap-4">
+                <input type="text" id="linkedin_placeholder" class="p-2 w-full rounded border"
+                  placeholder="Linkedin placeholder (optional)" data-i18n-placeholder="linkedin_ph_placeholder" />
+                <input type="text" id="linkedin" class="p-2 w-full rounded border" placeholder="LinkedIn URL (optional)"
+                  data-i18n-placeholder="linkedin_url_placeholder" />
+              </div> 
+
+              
+              <!-- Profile Picture Upload -->
+              <div class="space-y-2">
+                <label class="block text-sm font-medium" data-i18n-key="profile_picture_label">Profile Picture
+                  (optional)</label>
+                <div class="flex items-center space-x-4">
+                  <label class="cursor-pointer btn btn-primary" data-i18n-key="choose_image_btn">
+                    Choose Image
+                    <input type="file" id="profile-image" accept="image/*" class="hidden" />
+                  </label>
+                  <button id="remove-image" class="hidden text-white btn btn-error" data-i18n-key="remove_image_btn">
+                    Remove
+                  </button>
+                </div>
+                <div id="image-preview" class="hidden mt-2">
+                  <img id="preview-img" src="" alt="Profile Preview" class="object-cover w-24 h-24 rounded border" />
+                  <p id="image-name" class="mt-1 text-sm text-gray-600"></p>
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <fieldset class="fieldset">
+                  <legend class="text-[14px]" data-i18n-key="save_profile_legend">Save a Personal Profile</legend>
+                  <select class="select" id="profile-select">
+                    <option disabled selected value="-1">Pick a saved profile</option>
+                  </select>
+                  <span class="label" id="profile-label" data-i18n-key="save_profile_hint">We just load the Personal
+                    Profile -> The rest below will be the same</span>
+                </fieldset>
+                <div class="collapse collapse-arrow bg-base-100">
+                  <input type="checkbox" />
+                  <div class="text-sm font-medium collapse-title" data-i18n-key="profile_actions_group">
+                    Personal Profile Actions
+                  </div>
+                  <div class="collapse-content">
+                    <div class="flex overflow-x-auto flex-row gap-4 mt-2">
+                      <button class="btn btn-soft btn-primary" id="save-profile" data-i18n-key="save_profile_btn">
+                        Save Personal Profile
+                      </button>
+                      <button class="btn btn-soft btn-secondary" id="load-profile" data-i18n-key="load_profile_btn">
+                        Load Personal Profile
+                      </button>
+                      <button class="btn btn-soft btn-error" id="delete-profile" data-i18n-key="delete_profile_btn">
+                        Delete Personal Profile
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Summary -->
+          <section class="mb-8">
+            <h3 class="mb-4 text-xl font-semibold" data-i18n-key="summary_title">Professional Summary</h3>
+            <textarea id="summary" class="p-2 w-full h-32 rounded border" placeholder="Tailored summary (2-3 sentences)"
+              data-i18n-placeholder="summary_placeholder"></textarea>
+          </section>
+
+          <!-- Skills -->
+          <section class="mb-8">
+            <h3 class="mb-4 text-xl font-semibold" data-i18n-key="skills_title">Skills</h3>
+            <div id="skills-fields">
+              <div class="space-y-4 skills-entry">
+                <input type="text" class="p-2 w-full rounded border" placeholder="Skill Name"
+                  data-i18n-placeholder="skill_name_placeholder" />
+                <input type="text" class="p-2 w-full rounded border" placeholder="Description"
+                  data-i18n-placeholder="skill_desc_placeholder" />
+                <button class="px-2 py-1 mt-2 text-white rounded delete-btn btn btn-error"
+                  data-container="skills-fields" data-i18n-key="delete_btn">
+                  Delete
+                </button>
+              </div>
+            </div>
+            <button id="add-skill-btn" class="px-4 py-2 mt-4 text-white rounded btn btn-info"
+              data-i18n-key="add_skill_btn">Add Skills</button>
+          </section>
+
+          <!-- Experience -->
+          <section class="mb-8">
+            <h3 class="mb-4 text-xl font-semibold" data-i18n-key="experience_title">Experience</h3>
+            <div id="experience-fields" class="space-y-4">
+              <div class="experience-entry">
+                <input type="text" class="p-2 w-full rounded border" placeholder="Position"
+                  data-i18n-placeholder="position_placeholder" />
+                <input type="text" class="p-2 mt-2 w-full rounded border" placeholder="Company"
+                  data-i18n-placeholder="company_placeholder" />
+                <input type="text" class="p-2 mt-2 w-full rounded border" placeholder="Location (optional)"
+                  data-i18n-placeholder="exp_location_placeholder" />
+                <input type="text" class="p-2 mt-2 w-full rounded border" placeholder="Dates"
+                  data-i18n-placeholder="dates_placeholder" />
+                <textarea class="p-2 mt-2 w-full h-24 rounded border" placeholder="Bullet points (one per line)"
+                  data-i18n-placeholder="bullets_placeholder"></textarea>
+                <p class="text-xs text-gray-500" data-i18n-key="bullets_help_experience">
+                  First line will be treated as a short header; following lines are detailed bullet items.
+                </p>
+                <button class="px-2 py-1 mt-2 text-white rounded delete-btn btn-error btn"
+                  data-container="experience-fields" data-i18n-key="delete_btn">
+                  Delete
+                </button>
+              </div>
+            </div>
+            <button id="add-experience-btn" class="px-4 py-2 mt-4 text-white rounded btn-info btn"
+              data-i18n-key="add_experience_btn">Add
+              Experience</button>
+          </section>
+
+          <!-- Projects -->
+          <section class="mb-8">
+            <h3 class="mb-4 text-xl font-semibold" data-i18n-key="projects_title">Projects</h3>
+            <div id="project-fields" class="space-y-4">
+              <div class="project-entry">
+                <input type="text" class="p-2 w-full rounded border pjitem" placeholder="Project Name"
+                  data-i18n-placeholder="project_name_placeholder" />
+                <input type="text" class="p-2 mt-2 w-full rounded border pjitem" placeholder="Link (optional)"
+                  data-i18n-placeholder="project_link_placeholder" />
+                <textarea class="p-2 mt-2 w-full h-24 rounded border pjitem" placeholder="Bullet points (one per line)"
+                  data-i18n-placeholder="bullets_placeholder"></textarea>
+                <p class="text-xs text-gray-500" data-i18n-key="bullets_help_projects">
+                  First line will be treated as a short header; following lines are detailed bullet items.
+                </p>
+                <button class="px-2 py-1 mt-2 text-white rounded delete-btn btn btn-error"
+                  data-container="project-fields" data-i18n-key="delete_btn">
+                  Delete
+                </button>
+              </div>
+            </div>
+            <button id="add-project-btn" class="px-4 py-2 mt-4 text-white rounded btn btn-info"
+              data-i18n-key="add_project_btn">Add Project</button>
+          </section>
+
+          <!-- Education -->
+          <section class="mb-8">
+            <h3 class="mb-4 text-xl font-semibold" data-i18n-key="education_title">Education</h3>
+            <div id="education-fields">
+              <div class="space-y-4 education-entry">
+                <input type="text" class="p-2 w-full rounded border" placeholder="University"
+                  data-i18n-placeholder="university_placeholder" />
+                <input type="text" class="p-2 w-full rounded border" placeholder="Degree"
+                  data-i18n-placeholder="degree_placeholder" />
+                <input type="text" class="p-2 w-full rounded border" placeholder="GPA (optional)"
+                  data-i18n-placeholder="gpa_placeholder" />
+                <input type="text" class="p-2 w-full rounded border" placeholder="Graduation Date"
+                  data-i18n-placeholder="graduation_placeholder" />
+                <button class="px-2 py-1 mt-2 text-white rounded delete-btn btn btn-error"
+                  data-container="education-fields" data-i18n-key="delete_btn">
+                  Delete
+                </button>
+              </div>
+            </div>
+            <button id="add-education-btn" class="px-4 py-2 mt-4 text-white rounded btn btn-info"
+              data-i18n-key="add_education_btn">Add Education</button>
+          </section>
+
+          <!-- Certifications -->
+          <section class="mb-8">
+            <h3 class="mb-4 text-xl font-semibold" data-i18n-key="certifications_title">Certifications</h3>
+            <div id="certificate-fields">
+              <div class="space-y-4 certificate-entry">
+                <input type="text" class="p-2 w-full rounded border" placeholder="Certification Name"
+                  data-i18n-placeholder="certification_name_placeholder" />
+                <input type="text" class="p-2 w-full rounded border" placeholder="Issuer/Description"
+                  data-i18n-placeholder="certification_issuer_placeholder" />
+                <input type="text" class="p-2 w-full rounded border" placeholder="Certification Date"
+                  data-i18n-placeholder="certification_date_placeholder" />
+                <button class="px-2 py-1 mt-2 text-white rounded delete-btn btn btn-error"
+                  data-container="certificate-fields" data-i18n-key="delete_btn">
+                  Delete
+                </button>
+              </div>
+            </div>
+            <button id="add-certificate-btn" class="px-4 py-2 mt-4 text-white rounded btn btn-info"
+              data-i18n-key="add_certificate_btn">Add Certification</button>
+          </section>
+
+          <!-- Prompt helper & JSON text input (collapsible, at bottom) -->
+          <div class="mt-6 border collapse collapse-arrow bg-base-100 border-base-300">
+            <input type="checkbox" />
+            <div class="text-sm font-medium collapse-title" data-i18n-key="prompt_helper_title">
+              Prompt helper (for AI tools)
+            </div>
+            <div class="collapse-content">
+              <div class="p-3 space-y-3 text-sm">
+                <p data-i18n-key="prompt_helper_description">
+                  Use this prompt in your AI tool (ChatGPT, Gemini, etc.). It should reply with a single JSON code block
+                  that you can paste back into this editor.
+                </p>
+                <textarea id="prompt-template" class="w-full font-mono text-xs textarea textarea-bordered" rows="8"
+                  readonly></textarea>
+                <button id="copy-prompt-btn" class="btn btn-sm btn-outline" data-i18n-key="copy_prompt_btn">
+                  Copy prompt
+                </button>
+
+                <div class="mt-4 space-y-2">
+                  <label for="json-input" class="block font-medium" data-i18n-key="json_input_label">Paste CV JSON from AI
+                    (or other tools)</label>
+                  <textarea id="json-input" class="w-full font-mono text-xs textarea textarea-bordered" rows="6"
+                    placeholder="{ &quot;cv&quot;: { ... }, &quot;coverLetter&quot;: { ... } }"></textarea>
+                  <div class="flex gap-2 items-center">
+                    <button id="load-json-text-btn" class="btn btn-sm btn-primary" data-i18n-key="load_json_text_btn">
+                      Load CV from JSON
+                    </button>
+                    <span class="text-xs json-text-error text-error"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- AI Editor removed -->
+      </div>
+
+      <!-- CV Preview -->
+      <div class="bg-base-200 p-6 rounded-lg shadow-md overflow-auto flex flex-col h-[calc(100vh-64px)] gap-5 transition-all">
+        <div id="cv-preview" class="display-none">
+          <!-- Preview content will be generated here -->
+        </div>
+        <object class="flex-1 p-0 m-0 w-full h-full" id="pdf-embed" type="application/pdf"></object>
+
+        <!-- Always-visible Update button + auto-update toggle + Load JSON -->
+        <div class="flex flex-row gap-3 justify-between items-center loadfile-container">
+          <div class="flex gap-2 items-center text-sm">
+            <span data-i18n-key="auto_update_label">Auto update</span>
+            <input id="auto-update-toggle" type="checkbox" class="toggle toggle-success" checked />
+          </div>
+          <div class="flex gap-3 items-center">
+            <div class="flex flex-row gap-1 items-center">
+              <label class="relative text-yellow-500 bg-yellow-50 fieldset-label btn" for="loadfile"
+                data-i18n-key="load_file_label">
+                Load CV JSON
+              </label>
+              <input type="file" class="absolute inset-0 opacity-0 file-input file-input-warning" id="loadfile" for="loadfile" accept=".json" />
+              <label class="text-xs fieldset-label err text-error"></label>
+            </div>
+            <button id="update-btn" class="text-emerald-500 bg-emerald-50 btn" data-i18n-key="update_btn">
+              Update
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-1 collapse collapse-arrow bg-base-100">
+          <input type="checkbox" />
+          <div class="text-sm font-medium collapse-title" data-i18n-key="primary_actions_group">
+            Primary & File Actions
+          </div>
+          <div class="collapse-content">
+            <div class="flex flex-row flex-wrap gap-5 mt-2">
+              <button id="download-pdf-btn" class="text-blue-500 bg-blue-50 btn" data-i18n-key="download_pdf_btn">
+                Download File
+              </button>
+              <button id="download-docx-btn" class="text-indigo-500 bg-indigo-50 btn">
+                Download DOCX
+              </button>
+              <button id="download-doc-btn" class="text-teal-500 bg-teal-50 btn">
+                Download DOC
+              </button>
+              <button id="download-json-btn" class="text-orange-500 bg-orange-50 btn" data-i18n-key="download_json_btn">
+                Save File
+              </button>
+            </div>
+            </div>
+        </div>
+      </div>
+    </div>
+
+    
+  </div>
+
+    
+
+  <script src="/simple/fonts/EBGaramond-Bold-normal.js"></script>
+  <script src="/simple/fonts/EBGaramond-Regular-normal.js"></script>
+  <script src="/simple/fonts/NotoSansJP-Bold-normal.js"></script>
+  <script src="/simple/fonts/NotoSansJP-Regular-normal.js"></script>
+  <script src="/simple/fonts/NotoSansKR-Bold-normal.js"></script>
+  <script src="/simple/fonts/NotoSansKR-Regular-normal.js"></script>
+  <script src="/simple/fonts/NotoSansSC-Regular-normal.js"></script>
+  <script src="/simple/fonts/NotoSansSC-Bold-normal.js"></script>
+  <dialog id="preset-config-modal" class="modal">
+    <div class="modal-box">
+      <h3 class="text-lg font-bold" data-modal-title>Configure Section Labels</h3>
+      <div class="py-4" data-modal-body></div>
+      <div data-modal-footer></div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
+  <script src="/simple/script/main.js" type="module"></script>
+</body>
+
+</html>
