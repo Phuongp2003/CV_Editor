@@ -226,12 +226,20 @@ function parseRichText(text: string): TextSegment[] {
 function segmentToWords(segments: TextSegment[]): RichWord[] {
   const words: RichWord[] = []
   segments.forEach((seg) => {
+    const startsWithSpace = seg.text.startsWith(' ') || seg.text.startsWith('\n') || seg.text.startsWith('\r')
     const parts: string[] = seg.text.match(/\S+\s*/g) || []
     if (parts.length === 0 && seg.text) {
       parts.push(seg.text)
     }
-    parts.forEach((part) => {
-      words.push({ text: part, bold: seg.bold, italic: seg.italic, underline: seg.underline })
+    parts.forEach((part, idx) => {
+      let wordText = part
+      if (idx === 0 && startsWithSpace) {
+        const leadingWhitespace = seg.text.match(/^\s+/)?.[0] || ''
+        if (!wordText.startsWith(leadingWhitespace)) {
+          wordText = leadingWhitespace + wordText
+        }
+      }
+      words.push({ text: wordText, bold: seg.bold, italic: seg.italic, underline: seg.underline })
     })
   })
   return words
@@ -298,11 +306,12 @@ function generatePDF(shouldDownload = false) {
   const contactLineHeight = Math.max(10, Math.round(lineHeight * 0.9))
   const padding = typography.sectionGap
   // Synchronized spacing gaps — all derived from typography scale and user requests
-  const sectionBeforeGap = padding
-  const sectionAfterHeaderGap = lineHeight + padding
-  const cardBeforeGap = Math.max(2, Math.round(lineHeight * 0.2))
-  const bulletBlockGap = Math.max(1, Math.round(lineHeight * 0.12))
-  const bulletLineHeight = Math.max(10, Math.round(lineHeight * 0.9))
+  const sectionBeforeGap = Math.max(3, Math.round(5 * sizeMultiplier.value))
+  const sectionAfterHeaderGap = Math.max(15, Math.round(21 * sizeMultiplier.value))
+  const cardBeforeGap = Math.max(2, Math.round(3 * sizeMultiplier.value))
+  const bulletBlockGap = Math.max(1, Math.round(2 * sizeMultiplier.value))
+  const bulletLineHeight = Math.max(10, Math.round(14 * sizeMultiplier.value))
+  const paragraphGap = Math.max(3, Math.round(5 * sizeMultiplier.value))
 
   const marginLeft = 40
   const midPage = doc.internal.pageSize.getWidth() / 2
@@ -378,87 +387,164 @@ function generatePDF(shouldDownload = false) {
     }
   }
 
+  const startsWithPunctuation = (str: string | undefined) => {
+    if (!str) return false
+    const trimmed = str.trim()
+    if (trimmed.length === 0) return false
+    const firstChar = trimmed.charAt(0)
+    return [',', '.', ';', ':', '?', '!', ')', ']', '}'].includes(firstChar)
+  }
+
   // Draw Rich Text Closure
-  function drawRichText(text: string, x: number, maxWidth: number) {
-    doc.setCharSpace(bodySize * 0.015)
-    const segments = parseRichText(text)
-    const words = segmentToWords(segments)
-    const lines = wrapRichWords(doc, words, maxWidth, setFont)
+  function drawRichText(text: string, x: number) {
+    const maxWidth = marginRight - x
+    const paragraphs = text.split(/\r?\n/)
 
-    lines.forEach((line, index) => {
-      if (index > 0) {
-        y += lineHeight
-        checkAndAddPage()
-      }
-      let currentX = x
-      line.forEach((word) => {
-        let style = 'normal'
-        if (word.bold && word.italic) style = 'bolditalic'
-        else if (word.bold) style = 'bold'
-        else if (word.italic) style = 'italic'
+    paragraphs.forEach((para, paraIdx) => {
+      doc.setCharSpace(bodySize * 0.015)
+      const segments = parseRichText(para)
+      const words = segmentToWords(segments)
+      const lines = wrapRichWords(doc, words, maxWidth, setFont)
 
-        setFont(style)
-        if (word.bold) {
-          doc.setTextColor('#000000')
-        } else {
-          doc.setTextColor('#000000')
+      lines.forEach((line, index) => {
+        if (paraIdx > 0 || index > 0) {
+          if (index === 0) {
+            y += lineHeight + paragraphGap
+          } else {
+            y += lineHeight
+          }
+          checkAndAddPage()
         }
-        doc.text(word.text, currentX, y)
-        if (word.underline) {
+
+        // Calculate total line width for justification
+        let totalLineWidth = 0
+        line.forEach((word) => {
+          let style = 'normal'
+          if (word.bold && word.italic) style = 'bolditalic'
+          else if (word.bold) style = 'bold'
+          else if (word.italic) style = 'italic'
+          setFont(style)
+          totalLineWidth += doc.getTextWidth(word.text)
+        })
+
+        // Justify only if not the last line of paragraph and more than 1 word
+        const isLastLine = index === lines.length - 1
+        const emptySpace = maxWidth - totalLineWidth
+        
+        let justifiableGapsCount = 0
+        for (let i = 0; i < line.length - 1; i++) {
+          if (!startsWithPunctuation(line[i + 1]?.text)) {
+            justifiableGapsCount++
+          }
+        }
+
+        const shouldJustify = !isLastLine && line.length > 1 && emptySpace > 0 && justifiableGapsCount > 0
+        const extraSpace = shouldJustify ? emptySpace / justifiableGapsCount : 0
+
+        let currentX = x
+        line.forEach((word, wIdx) => {
+          let style = 'normal'
+          if (word.bold && word.italic) style = 'bolditalic'
+          else if (word.bold) style = 'bold'
+          else if (word.italic) style = 'italic'
+
+          setFont(style)
+          doc.text(word.text, currentX, y)
+          if (word.underline) {
+            const wordWidth = doc.getTextWidth(word.text)
+            doc.setLineWidth(0.4)
+            doc.line(currentX, y + 1.0, currentX + wordWidth, y + 1.0)
+          }
           const wordWidth = doc.getTextWidth(word.text)
-          doc.setLineWidth(0.4)
-          doc.line(currentX, y + 1.0, currentX + wordWidth, y + 1.0)
-        }
-        currentX += doc.getTextWidth(word.text)
+          currentX += wordWidth
+          if (shouldJustify && wIdx < line.length - 1 && !startsWithPunctuation(line[wIdx + 1]?.text)) {
+            currentX += extraSpace
+          }
+        })
       })
     })
     doc.setTextColor('#000000')
   }
 
   // Draw Rich Text Bullet Closure (supports Level 1, 2, 3 prefixes)
-  function drawRichTextBullet(text: string, x: number, maxWidth: number, prefix: string) {
-    doc.setCharSpace(bodySize * 0.015)
-    const segments = parseRichText(text)
-    const words = segmentToWords(segments)
-    const lines = wrapRichWords(doc, words, maxWidth, setFont)
+  function drawRichTextBullet(text: string, x: number, prefix: string) {
+    const paragraphs = text.split(/\r?\n/)
 
-    lines.forEach((line, index) => {
-      if (index > 0) {
-        y += bulletLineHeight
-        checkAndAddPage()
-      }
-      let currentX = x
-      if (index === 0) {
-        setFont('normal')
-        doc.setTextColor('#000000')
-        doc.text(prefix, currentX, y)
-        currentX += doc.getTextWidth(prefix)
-      } else {
-        const indentPrefix = '    '
-        setFont('normal')
-        doc.setTextColor('#000000')
-        currentX += doc.getTextWidth(indentPrefix)
-      }
+    // Calculate prefix width once using normal font style
+    setFont('normal')
+    const prefixWidth = doc.getTextWidth(prefix)
+    const maxWidth = marginRight - (x + prefixWidth)
 
-      line.forEach((word) => {
-        let style = 'normal'
-        if (word.bold && word.italic) style = 'bolditalic'
-        else if (word.bold) style = 'bold'
-        else if (word.italic) style = 'italic'
+    paragraphs.forEach((para, paraIdx) => {
+      doc.setCharSpace(bodySize * 0.015)
+      const segments = parseRichText(para)
+      const words = segmentToWords(segments)
+      const lines = wrapRichWords(doc, words, maxWidth, setFont)
 
-        setFont(style)
-        if (word.bold) {
-          doc.setTextColor('#000000')
-        } else {
-          doc.setTextColor('#000000')
+      lines.forEach((line, index) => {
+        if (paraIdx > 0 || index > 0) {
+          if (index === 0) {
+            y += bulletLineHeight + paragraphGap
+          } else {
+            y += bulletLineHeight
+          }
+          checkAndAddPage()
         }
-        doc.text(word.text, currentX, y)
-        if (word.underline) {
+
+        // Calculate total line width of the words
+        let totalLineWidth = 0
+        line.forEach((word) => {
+          let style = 'normal'
+          if (word.bold && word.italic) style = 'bolditalic'
+          else if (word.bold) style = 'bold'
+          else if (word.italic) style = 'italic'
+          setFont(style)
+          totalLineWidth += doc.getTextWidth(word.text)
+        })
+
+        // Justify words to maxWidth
+        const isLastLine = index === lines.length - 1
+        const emptySpace = maxWidth - totalLineWidth
+
+        let justifiableGapsCount = 0
+        for (let i = 0; i < line.length - 1; i++) {
+          if (!startsWithPunctuation(line[i + 1]?.text)) {
+            justifiableGapsCount++
+          }
+        }
+
+        const shouldJustify = !isLastLine && line.length > 1 && emptySpace > 0 && justifiableGapsCount > 0
+        const extraSpace = shouldJustify ? emptySpace / justifiableGapsCount : 0
+
+        // Draw prefix if first line of first paragraph
+        if (paraIdx === 0 && index === 0) {
+          setFont('normal')
+          doc.setTextColor('#000000')
+          doc.text(prefix, x, y)
+        }
+
+        // Words start at x + prefixWidth
+        let currentX = x + prefixWidth
+
+        line.forEach((word, wIdx) => {
+          let style = 'normal'
+          if (word.bold && word.italic) style = 'bolditalic'
+          else if (word.bold) style = 'bold'
+          else if (word.italic) style = 'italic'
+
+          setFont(style)
+          doc.text(word.text, currentX, y)
+          if (word.underline) {
+            const wordWidth = doc.getTextWidth(word.text)
+            doc.setLineWidth(0.4)
+            doc.line(currentX, y + 1.0, currentX + wordWidth, y + 1.0)
+          }
           const wordWidth = doc.getTextWidth(word.text)
-          doc.setLineWidth(0.4)
-          doc.line(currentX, y + 1.0, currentX + wordWidth, y + 1.0)
-        }
-        currentX += doc.getTextWidth(word.text)
+          currentX += wordWidth
+          if (shouldJustify && wIdx < line.length - 1 && !startsWithPunctuation(line[wIdx + 1]?.text)) {
+            currentX += extraSpace
+          }
+        })
       })
     })
     doc.setTextColor('#000000')
@@ -674,7 +760,7 @@ function generatePDF(shouldDownload = false) {
 
       setFont('normal')
       doc.setFontSize(bodySize)
-      drawRichText(summary, marginLeft, 500)
+      drawRichText(summary, marginLeft)
       y += lineHeight
       checkAndAddPage()
     }
@@ -695,7 +781,7 @@ function generatePDF(shouldDownload = false) {
 
       setFont('normal')
       doc.setFontSize(bodySize)
-      drawRichText(objective, marginLeft, 500)
+      drawRichText(objective, marginLeft)
       y += lineHeight
       checkAndAddPage()
     }
@@ -725,7 +811,7 @@ function generatePDF(shouldDownload = false) {
         tempStr +=
           tempStr && normalizedDescription ? `: ${normalizedDescription}` : normalizedDescription
 
-        drawRichText(tempStr, marginLeft, 500)
+        drawRichText(tempStr, marginLeft)
         y += lineHeight
         if (index !== skills.length - 1 || y < marginBottom) {
           checkAndAddPage()
@@ -802,7 +888,7 @@ function generatePDF(shouldDownload = false) {
 
         // Position line
         const posStr = position ? `**${position.trim()}**` : ''
-        drawRichText(posStr, marginLeft, 500)
+        drawRichText(posStr, marginLeft)
         y += lineHeight
         checkAndAddPage()
         setFont('normal')
@@ -813,7 +899,7 @@ function generatePDF(shouldDownload = false) {
           if (!textVal.trim()) return
 
           if (part.type === 'header') {
-            drawRichText(textVal.trim(), marginLeft, 500)
+            drawRichText(textVal.trim(), marginLeft)
             y += lineHeight
             checkAndAddPage()
           } else {
@@ -849,7 +935,7 @@ function generatePDF(shouldDownload = false) {
             if (level === 2) prefix = `${bulletChars.value.l2 || '◦'}   `
             else if (level === 3) prefix = `${bulletChars.value.l3 || '▪'}   `
 
-            drawRichTextBullet(textVal.trim(), indentX, maxWidth, prefix)
+            drawRichTextBullet(textVal.trim(), indentX, prefix)
             y += bulletLineHeight
             checkAndAddPage()
 
@@ -901,7 +987,7 @@ function generatePDF(shouldDownload = false) {
         doc.setFontSize(bodySize)
         doc.setCharSpace(bodySize * 0.05)
         const projNameUpper = projectName.trim().toUpperCase()
-        const projectNameLines = doc.splitTextToSize(projNameUpper, 520)
+        const projectNameLines = doc.splitTextToSize(projNameUpper, marginRight - marginLeft)
 
         for (let i = 0; i < projectNameLines.length; i++) {
           doc.text(projectNameLines[i], marginLeft, y)
@@ -922,7 +1008,7 @@ function generatePDF(shouldDownload = false) {
           if (!textVal.trim()) return
 
           if (part.type === 'header') {
-            drawRichText(textVal.trim(), marginLeft, 500)
+            drawRichText(textVal.trim(), marginLeft)
             y += lineHeight
             checkAndAddPage()
           } else {
@@ -958,7 +1044,7 @@ function generatePDF(shouldDownload = false) {
             if (level === 2) prefix = `${bulletChars.value.l2 || 'â—¦'}   `
             else if (level === 3) prefix = `${bulletChars.value.l3 || 'â–ª'}   `
 
-            drawRichTextBullet(textVal.trim(), indentX, maxWidth, prefix)
+            drawRichTextBullet(textVal.trim(), indentX, prefix)
             y += bulletLineHeight
             checkAndAddPage()
 
@@ -1006,7 +1092,7 @@ function generatePDF(shouldDownload = false) {
 
         doc.setFontSize(bodySize)
         const uniStr = university ? `**${university.trim()}**` : ''
-        drawRichText(uniStr, marginLeft, 500)
+        drawRichText(uniStr, marginLeft)
 
         setFont('normal')
         doc.setTextColor('#333333')
@@ -1018,7 +1104,7 @@ function generatePDF(shouldDownload = false) {
 
         let degStr = degree ? `${degree.trim()}` : ''
         degStr += degStr && gpa ? ` - ${gpa.trim()}` : gpa ? `${gpa.trim()}` : ''
-        drawRichText(degStr, marginLeft, 500)
+        drawRichText(degStr, marginLeft)
 
         y += lineHeight
         if (index !== educations.length - 1 || y < marginBottom) {
@@ -1056,7 +1142,7 @@ function generatePDF(shouldDownload = false) {
 
         doc.setFontSize(bodySize)
         const certStr = certName ? `**${certName.trim()}**` : ''
-        drawRichText(certStr, marginLeft, 500)
+        drawRichText(certStr, marginLeft)
 
         setFont('normal')
         doc.setTextColor('#333333')
@@ -1070,7 +1156,7 @@ function generatePDF(shouldDownload = false) {
         }
 
         if (issuer) {
-          drawRichText(issuer.trim(), marginLeft, 500)
+          drawRichText(issuer.trim(), marginLeft)
           if (index !== certificates.length - 1) {
             y += lineHeight
             checkAndAddPage()

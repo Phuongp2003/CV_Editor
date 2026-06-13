@@ -72,80 +72,68 @@ function loadJsonFromText() {
 }
 
 // ─── Prompt Template ─────────────────────────────────────────────────────────
-const promptTemplate = `You are a CV structuring assistant. Generate both a tailored CV and a cover letter in response to a job description and (optional) user-provided information.
+const promptTemplate = `You are an expert CV and Cover Letter structuring assistant. Your goal is to analyze a job description and optional user-provided details to generate a highly tailored, professional CV and Cover Letter in a single, valid JSON payload.
 
 ## Goal Statement
-The output must:
-- Be in JSON format matching the schema below
-- Use natural, real-life phrasing and tone appropriate for professional job applications
-- In the summary/overview section, you must NOT use generic phrases such as "aspiring", "passionate", "motivated", or any similar non-specific terms.
-- Translate all fields into the specified language—except if the specified language is English (case-insensitive), in which case the output must remain fully in English
+1. The output MUST be a single JSON object matching the exact schema defined below.
+2. The language of all text fields in the CV and Cover Letter (including section labels) must match the requested language. Exception: If the requested language is English (case-insensitive), output all fields in English.
+3. Keep the tone professional, natural, and results-oriented. Avoid generic filler/boilerplate phrases in the summary or objective sections (e.g., do NOT use words like "passionate", "aspiring", "motivated", "detail-oriented", or "seeking new opportunities").
+4. If a field has no user data and cannot be realistically inferred, use an empty string or empty array as appropriate.
 
-The cover letter should:
-- Be role-specific and company-aware
-- Highlight relevant experience, skills, and achievements aligned with the job description
-- Follow standard cover letter structure: header, greeting, intro, body, closing, and sign-off
-- Sound authentic, enthusiastic, and tailored to the job
-- Keep the letter under 350 words
-
-## Return Format
-Return a single JSON object with the following structure. Every text field must be in the requested language (unless the language is English—then keep in English):
-
+## JSON Schema Structure
 \`\`\`json
 {
   "cv": {
     "name": "string",
     "email": "string",
     "phone": "string",
-    "location": "string",
-    "linkedin": "string",
-    "linkedin_placeholder": "string (short display name for preview, e.g. linkedin.com/in/username)",
-    "github": "string",
-    "github_placeholder": "string (short display name for preview, e.g. github.com/username)",
-    "website": "string",
-    "website_placeholder": "string (short display name for preview, e.g. mywebsite.com)",
-    "summary": "string",
-    "objective": "string (leave empty if disabledSections contains 'objective')",
+    "location": "string (e.g. City, Country)",
+    "linkedin": "string (full URL, e.g. https://linkedin.com/in/username)",
+    "linkedin_placeholder": "string (short display name, e.g. linkedin.com/in/username)",
+    "github": "string (full URL, e.g. https://github.com/username)",
+    "github_placeholder": "string (short display name, e.g. github.com/username)",
+    "website": "string (full URL)",
+    "website_placeholder": "string (short display name)",
+    "summary": "string (concise professional summary tailored to the role, no boilerplate/buzzwords)",
+    "objective": "string (career objective, leave empty unless objective section is explicitly enabled or candidate is very junior)",
     "experiences": [
       {
         "position": "string",
         "company": "string",
-        "location": "string",
-        "dates": "string",
+        "location": "string (e.g. City, Country)",
+        "dates": "string (e.g. October 2024 - Present or MM/YYYY - MM/YYYY)",
         "bullets": {
-          "description": "short header line for this job (optional, no bullet)",
+          "description": "string (optional overview line for the role, no bullet prefix)",
           "items": [
-            "- first level bullet line (prefix with -)",
-            "+ second level bullet line (prefix with +)"
+            "string (bullet text starting with a prefix: '-' for L1 main bullet, '+' or '--' for L2 nested sub-bullet, and '---' for L3 deep nested sub-bullet)"
           ]
         }
-      }
-    ],
-    "educations": [
-      {
-        "university": "string",
-        "degree": "string",
-        "gpa": "string",
-        "graduationDate": "string"
       }
     ],
     "projects": [
       {
         "projectName": "string",
-        "projectLink": "string",
+        "projectLink": "string (full URL)",
         "bullets": {
-          "description": "short header line for this project (optional, no bullet)",
+          "description": "string (optional overview line for the project, no bullet prefix)",
           "items": [
-            "- first level bullet line (prefix with -)",
-            "+ second level bullet line (prefix with +)"
+            "string (bullet text starting with a prefix: '-' for L1 main bullet, '+' or '--' for L2 nested sub-bullet, and '---' for L3 deep nested sub-bullet)"
           ]
         }
       }
     ],
     "skills": [
       {
-        "skill": "skill name",
-        "description": "short description"
+        "skill": "string (group name, e.g. Languages, Frameworks, Infrastructure)",
+        "description": "string (comma-separated skills, e.g. JavaScript, Python, SQL)"
+      }
+    ],
+    "educations": [
+      {
+        "university": "string",
+        "degree": "string",
+        "gpa": "string (optional, leave empty if weak or not provided)",
+        "graduationDate": "string"
       }
     ],
     "certificates": [
@@ -162,88 +150,98 @@ Return a single JSON object with the following structure. Every text field must 
       "email": "string",
       "phone": "string",
       "location": "string",
-      "date": "string",
-      "recipientName": "string",
+      "date": "string (today's date)",
+      "recipientName": "string (e.g. Hiring Manager)",
       "recipientTitle": "string",
       "companyName": "string",
       "companyAddress": "string"
     },
-    "greeting": "string",
-    "openingParagraph": "string",
-    "bodyParagraphs": ["string", "string"],
-    "closingParagraph": "string",
-    "signOff": "string"
+    "greeting": "string (e.g. Dear Hiring Manager, or Dear Mr. / Ms. [Name],)",
+    "openingParagraph": "string (compelling opening expressing interest and matching job requirements)",
+    "bodyParagraphs": [
+      "string (supporting paragraph highlighting experience/achievements)",
+      "string (supporting paragraph showing technical fit and soft skills)"
+    ],
+    "closingParagraph": "string (reiterate fit and propose next steps / interview)",
+    "signOff": "string (e.g. Sincerely,\\n\\n[Name])"
   },
-  "language": "string (matching the requested language, e.g., 'English', 'Vietnamese', 'Japanese', 'Korean', 'Chinese')",
-  "selectedFont": "string (default is 'notosans')",
+  "language": "string (exact target language name, e.g., 'English', 'Vietnamese', 'Japanese', 'Korean', 'Chinese')",
+  "selectedFont": "string ('notosans' | 'arial' | 'custom', default is 'notosans')",
+  "customFontName": "string (if selectedFont is 'custom', choose a matching premium Google Font name, e.g., 'Inter', 'Roboto', 'Montserrat'; otherwise keep empty string)",
   "sizeMultiplier": 1.0,
-  "customSectionLabels": {
-    "summary": "translated label for Summary section in the requested language (e.g. 'Tóm tắt')",
-    "objective": "translated label for Objective section in the requested language (e.g. 'Mục tiêu nghề nghiệp')",
-    "skills": "translated label for Skills section in the requested language (e.g. 'Kỹ năng')",
-    "experience": "translated label for Experience section in the requested language (e.g. 'Kinh nghiệm làm việc')",
-    "projects": "translated label for Projects section in the requested language (e.g. 'Dự án')",
-    "education": "translated label for Education section in the requested language (e.g. 'Học vấn')",
-    "certificates": "translated label for Certificates section in the requested language (e.g. 'Chứng chỉ')"
+  "bulletChars": {
+    "l1": "•",
+    "l2": "◦",
+    "l3": "▪"
   },
-  "sectionsOrder": ["summary", "skills", "experience", "projects", "education", "certificates"],
-  "disabledSections": ["objective"]
+  "customSectionLabels": {
+    "summary": "string (translated label, e.g. 'Summary' or 'Tóm tắt')",
+    "objective": "string (translated label, e.g. 'Objective' or 'Mục tiêu nghề nghiệp')",
+    "skills": "string (translated label, e.g. 'Skills' or 'Kỹ năng')",
+    "experience": "string (translated label, e.g. 'Experience' or 'Kinh nghiệm làm việc')",
+    "projects": "string (translated label, e.g. 'Projects' or 'Dự án')",
+    "education": "string (translated label, e.g. 'Education' or 'Học vấn')",
+    "certificates": "string (translated label, e.g. 'Certificates' or 'Chứng chỉ')"
+  },
+  "sectionsOrder": [
+    "summary",
+    "objective",
+    "skills",
+    "experience",
+    "projects",
+    "education",
+    "certificates"
+  ],
+  "disabledSections": [
+    "objective"
+  ]
 }
 \`\`\`
 
-## Guidelines
+## Section-specific Guidelines
+- **Contact Details**: Keep link placeholders short for previewing (e.g. github.com/username instead of the full URL).
+- **Summary & Objective**: Customize to address the job description's main requirements. Focus on concrete accomplishments and years of experience.
+- **Experience Bullets**:
+  - Main accomplishments should be written as Level 1 bullets (prefixed with "- ").
+  - Supporting technical details or metrics should be nested as Level 2 (prefixed with "+" or "-- ") or Level 3 (prefixed with "--- ").
+  - Start main bullets with strong, active verbs in the past tense (or appropriate structure for the target language).
+  - For the overview line of experiences (\`cv.experiences.bullets.description\`), write a direct, natural overview. Do NOT prepend "Context:" or wrap the entire text in italic stars (like \`*Context: ...*\`).
+- **Projects**:
+  - Only list real, meaningful projects. Avoid boilerplate or trivial tutorial projects.
+  - For the overview line of projects (\`cv.projects.bullets.description\`), write a direct, natural overview. Do NOT prepend "Context:" or wrap the entire text in italic stars (like \`*Context: ...*\`).
+- **Skills**:
+  - Group skills into logical categories (e.g., Languages, Frameworks, Infrastructure/Tools) rather than listing everything as one long list.
+  - In \`cv.skills.description\`, list the technologies/skills naturally. Do NOT wrap the entire description in bold (\`**\`); only bold at most 2-3 key technologies in each list to maintain visual hierarchy, or leave them unformatted if all are of equal importance.
+- **Education**: Omit GPA if it is low (below 3.2 out of 4) or not provided.
+- **Certificates**: Ensure all relevant professional certificates and language scores (e.g., IELTS, TOEIC, AWS certificates) are listed.
 
-**Metadata (Root-level properties):**
-- **language**: Use the exact name of the language requested (e.g., "English" or "Vietnamese").
-- **selectedFont**: Choose a matching font key (e.g. "notosans", "roboto", "playfair", "garamond", "inter", "merriweather", "lato"). Default is "notosans".
-- **sizeMultiplier**: Float number. Use 1.0 as standard.
-- **customSectionLabels**: ALWAYS translate these section names to match the requested CV language. Make them sound professional and standard for the target region.
-- **sectionsOrder**: Order the section keys logically (e.g., placing experience or skills first based on experience level).
-- **disabledSections**: Set to \`["objective"]\` by default to hide the objective section, unless the user explicitly asks for an objective or you deem it highly relevant for a junior position.
+## Rich Text Formatting Guidelines
+- The editor supports standard Markdown inline formatting for rich text:
+  - \`**bold**\` (renders as strong text)
+  - \`*italic*\` (renders as emphasis text)
+  - \`***bolditalic***\` (renders as bold and italicized)
+  - \`<u>underline</u>\` (renders as underlined text)
+- You MUST use these styles to highlight key achievements, technologies, names, or metrics to make the CV look professional.
+- Rich text formatting is fully supported and rendered in the following JSON fields:
+  - \`cv.summary\`
+  - \`cv.objective\`
+  - \`text\` in \`cv.experiences.bullets.items\`
+  - \`text\` in \`cv.projects.bullets.items\`
+  - \`description\` in \`cv.skills\`
+  - \`issuer/description\` in \`cv.certificates\`
 
-**Summary Section:**
-- Only include if you have relevant information that directly relates to the job description.
-- Do NOT use generic or boilerplate language (e.g., "passionate", "aspiring").
-- Provide a concise summary that highlights skills or background in direct relation to the job.
-- Integrate keywords from the job description naturally.
+## Section Visibility & Ordering
+- **Order Constraints**: The \`sectionsOrder\` list MUST ALWAYS contain all 7 keys: \`"summary"\`, \`"objective"\`, \`"skills"\`, \`"experience"\`, \`"projects"\`, \`"education"\`, and \`"certificates"\`. Do NOT omit any keys from this list. Arrange them logically based on the candidate's seniority (e.g. experience/skills first for senior roles, education first for fresh graduates).
+- **Enable/Disable Sections**:
+  - The \`disabledSections\` array controls which sections are hidden by default in the UI.
+  - Set \`"objective"\` in \`disabledSections\` by default unless the user explicitly requests one, or the candidate is entry-level.
+  - If a section (like \`certificates\` or \`projects\`) contains no data or entries, add its key to \`disabledSections\` to hide it.
+  - If a section contains valid generated entries, ensure it is NOT listed in \`disabledSections\` so it is visible to the user.
 
-**Experiences Section:**
-- Each experience should show position, company, location, employment dates, and bullet points.
-- Start each bullet point with a past-tense action verb (or equivalent action structure in non-English languages).
-- Present timeline and technologies clearly.
-- For bullets: use "description" for a short header (no bullet), and "items" array for bullet points with "-" (level 1) and "+" (level 2) prefixes.
-
-**Projects:**
-- Include projects that are relevant to the job.
-- Only list real and significant projects.
-- Avoid trivial or tutorial-based ones.
-- For bullets: use "description" for a concise summary (no bullet), and "items" array for specific bullet points.
-
-**Skills:**
-- Highlight only relevant skills for the job.
-- Do not list every technology ever used.
-- Format clearly, and group related skills where applicable.
-
-**Educations:**
-- List educational background clearly.
-- Omit GPA if weak or not provided.
-
-**Certificates:**
-- List all related certificates (all language-related certificates must be listed, e.g., IELTS, TOEIC).
-- Omit the certificate date if not provided.
-
-**Language:**
-- Generate the CV, cover letter, and section labels in the language specified.
-- If the language is not specified, default to English.
-- If the specified language is "english", DO NOT translate—keep the content fully in English.
-
-## IMPORTANT Requirements
-- Only respond with **one** JSON code block exactly as above (no explanations).
-- Keep the property names exactly as shown.
-- Use "#" for header (description field), "-" for level 1 bullets, and "+" for level 2 bullets in the items array.
-- Do NOT add any citation markers like [cite], [^1], [source], [cite_start], or [cite: X]; just plain JSON.
-- Use strong, past-tense action verbs in experience bullets.
-- Do not use generic phrases like "To whom it may concern" in cover letters.`
+## Formatting Constraints
+- Respond ONLY with the JSON object wrapped in a single \`\`\`json code block.
+- Do NOT output any additional introductory text, conversational pleasantries, or explanations.
+- Do NOT insert citation references or citation markers (such as [cite], [source], [^1], or [cite: X]) into any text fields. Output must be clean, final copy.`
 
 // ─── SEO Settings & Preview ──────────────────────────────────────────────────
 const isDev = import.meta.env.DEV
