@@ -1,0 +1,115 @@
+@import 'tailwindcss';
+@import '@nuxt/ui';
+
+:root {
+  --bg-page: #e2e8f0;
+  --bg-card: #ffffff;
+  --bg-card-sub: #f1f5f9;
+  --bg-element: #cbd5e1;
+  --bg-hover: #94a3b8;
+  --bg-muted: #f1f5f9;
+  --border-main: #94a3b8;
+  --border-sub: #cbd5e1;
+  --text-main: #0f172a;
+  --text-sub: #1e293b;
+  --text-muted: #475569;
+  --secondary: #4f46e5;
+  --secondary-bg: #e0e7ff;
+}
+
+.dark {
+  --bg-page: #030712;
+  --bg-card: #0f172a;
+  --bg-card-sub: rgba(15, 23, 42, 0.4);
+  --bg-element: #1e293b;
+  --bg-hover: #334155;
+  --bg-muted: #030712;
+  --border-main: #1e293b;
+  --border-sub: rgba(30, 41, 59, 0.5);
+  --text-main: #f8fafc;
+  --text-sub: #cbd5e1;
+  --text-muted: #64748b;
+  --secondary: #818cf8;
+  --secondary-bg: rgba(99, 102, 241, 0.15);
+}
+
+@theme {
+  --color-primary-50: var(--color-blue-50);
+  --color-primary-100: var(--color-blue-100);
+  --color-primary-200: var(--color-blue-200);
+  --color-primary-300: var(--color-blue-300);
+  --color-primary-400: var(--color-blue-400);
+  --color-primary-500: var(--color-blue-500);
+  --color-primary-600: var(--color-blue-600);
+  --color-primary-700: var(--color-blue-700);
+  --color-primary-800: var(--color-blue-800);
+  --color-primary-900: var(--color-blue-900);
+  --color-primary-950: var(--color-blue-950);
+
+  --color-theme-page: var(--bg-page);
+  --color-theme-card: var(--bg-card);
+  --color-theme-card-sub: var(--bg-card-sub);
+  --color-theme-element: var(--bg-element);
+  --color-theme-hover: var(--bg-hover);
+  --color-theme-muted: var(--bg-muted);
+  --color-theme-border: var(--border-main);
+  --color-theme-sub: var(--border-sub);
+  --color-theme-text: var(--text-main);
+  --color-theme-text-sub: var(--text-sub);
+  --color-theme-text-muted: var(--text-muted);
+  --color-theme-secondary: var(--secondary);
+  --color-theme-secondary-bg: var(--secondary-bg);
+}
+
+* {
+  font-family: 'Noto Sans', sans-serif;
+}
+
+html,
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary-500);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-600);
+}
+
+/* Firefox scrollbar compatibility */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary-500) transparent;
+}
+
+/* Global utility classes for Theme Design */
+.input-field {
+  width: 100%;
+  @apply bg-theme-card border border-theme-border rounded-lg p-2.5 text-theme-text text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all duration-150 shadow-sm placeholder-theme-text-muted;
+}
+
+.textarea-field {
+  width: 100%;
+  @apply bg-theme-card border border-theme-border rounded-lg p-2.5 text-theme-text text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all duration-150 shadow-sm placeholder-theme-text-muted;
+  resize: vertical;
+}
+
+.btn-add {
+  width: 100%;
+  @apply bg-theme-muted hover:bg-theme-element dark:hover:bg-theme-hover/30 border border-dashed border-theme-border text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 py-2.5 px-4 rounded-lg font-bold text-xs transition-all duration-150 cursor-pointer shadow-sm;
+}

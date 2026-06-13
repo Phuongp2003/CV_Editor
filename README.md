@@ -1,40 +1,67 @@
-# Professional-CV-Editor
+# cv-editor
 
-Professional-CV-Editor is a powerful tool designed to help engineering professionals create, edit, and perfect their resumes. It focuses on fast manual editing, clean export (PDF/DOCX/JSON), and convenient profile/language management.
+This template should help get you started developing with Vue 3 in Vite.
 
-## Key Features
+## Recommended IDE Setup
 
-- **Create Professional Engineering Resumes**  
-  Build and maintain impressive, tailored resumes specifically optimized for engineering roles.
+[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
 
-- **Manual Editing**  
-  Easily edit every section of your resume manually to add your personal touch and extra details.
+## Recommended Browser Setup
 
-- **Profile Slots**  
-  Save multiple “personal profile” presets (name, contacts, language, avatar, etc.) and quickly switch between them.
+- Chromium-based browsers (Chrome, Edge, Brave, etc.):
+  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
+  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
+- Firefox:
+  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
+  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
 
-- **Save and Load**  
-  Save your progress as a JSON file and load it later, making it easy to update or fine-tune your resume as needed.
+## Type Support for `.vue` Imports in TS
 
-- **Download Options**  
-  Export your CV as **PDF** (with embedded fonts for multiple languages) or **DOCX**, ready to send to recruiters or upload to job portals.
+TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
 
-- **Multi-language UI**  
-  Switch interface language (e.g. English, Vietnamese, and more) via the language dropdown; labels and placeholders adapt automatically.
+## Customize configuration
 
-## How It Works
+See [Vite Configuration Reference](https://vite.dev/config/).
 
-1. **Fill In Your Information**  
-   Enter personal info, summary, skills, experiences (with bullet points), projects, education, and certifications directly in the left-hand form.
+## Project Setup
 
-2. **Auto Preview**  
-   The app continuously generates a high-quality PDF preview on the right as you type.
+```sh
+npm install
+```
 
-3. **Save / Load JSON**  
-   Use the “Save File” button to export your current CV data as JSON, and “Load File” to restore or edit it later.
+### Compile and Hot-Reload for Development
 
-4. **Export**  
-   Once satisfied, export your CV as PDF or DOCX using the buttons in the preview panel.
+```sh
+npm run dev
+```
 
-> Note: There is **no built-in AI generation in the UI** anymore.  
-> The `instruction.txt` file and `example_res.json` remain as references if you want to plug your own AI backend that outputs CV JSON in the documented schema.
+### Type-Check, Compile and Minify for Production
+
+```sh
+npm run build
+```
+
+### Run Unit Tests with [Vitest](https://vitest.dev/)
+
+```sh
+npm run test:unit
+```
+
+### Run End-to-End Tests with [Playwright](https://playwright.dev)
+
+```sh
+# Install browsers for the first run
+npx playwright install
+
+# When testing on CI, must build the project first
+npm run build
+
+# Runs the end-to-end tests
+npm run test:e2e
+# Runs the tests only on Chromium
+npm run test:e2e -- --project=chromium
+# Runs the tests of a specific file
+npm run test:e2e -- tests/example.spec.ts
+# Runs the tests in debug mode
+npm run test:e2e -- --debug
+```

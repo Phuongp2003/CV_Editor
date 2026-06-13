@@ -1,0 +1,111 @@
+{
+  "cv": {
+    "name": "Nguyen Minh Quan",
+    "email": "quan.nguyen@email.com",
+    "phone": "+84 90 123 4567",
+    "location": "Ho Chi Minh City, Vietnam",
+    "linkedin": "linkedin.com/in/quannguyen-dev",
+    "github": "github.com/quannguyen-dev",
+    "website": "quannguyen.dev",
+    "summary": "Software Engineer with 3+ years of experience specializing in full-stack web development, scalable system architecture, and cloud infrastructure optimization. Proven track record of improving application performance by 40% and leading cross-functional teams to deliver enterprise-grade solutions.",
+    "experiences": [
+      {
+        "position": "Senior Software Engineer",
+        "company": "TechVanguard Solutions",
+        "location": "Ho Chi Minh City, Vietnam",
+        "dates": "October 2024 - Present",
+        "bullets": {
+          "description": "# Led the migration of legacy monolithic architecture to microservices",
+          "items": [
+            "- Architected and deployed 15+ microservices using Node.js and Docker on AWS ECS",
+            "+ Reduced server response time by 35% through Redis caching implementation",
+            "- Mentored 4 junior developers and established code review guidelines to ensure code quality"
+          ]
+        }
+      },
+      {
+        "position": "Full Stack Developer",
+        "company": "Innovate Digital Hub",
+        "location": "Da Nang, Vietnam",
+        "dates": "June 2023 - September 2024",
+        "bullets": {
+          "description": "# Developed core features for a high-traffic e-commerce platform",
+          "items": [
+            "- Built responsive user interfaces utilizing React.js and Tailwind CSS",
+            "- Engineered secure payment gateway integrations with Stripe and local providers",
+            "+ Enhanced database query performance in PostgreSQL, cutting page load times by 1.2 seconds"
+          ]
+        }
+      }
+    ],
+    "educations": [
+      {
+        "university": "Ho Chi Minh City University of Technology (HCMUT)",
+        "degree": "Bachelor of Science in Computer Science",
+        "gpa": "3.6 / 4.0",
+        "graduationDate": "May 2023"
+      }
+    ],
+    "projects": [
+      {
+        "projectName": "Enterprise Task Analytics Dashboard",
+        "projectLink": "github.com/quannguyen-dev/task-analytics",
+        "bullets": {
+          "description": "# Real-time project tracking application handling over 10,000 active daily users",
+          "items": [
+            "- Implemented WebSockets via Socket.io for instant data synchronization across clients",
+            "- Integrated interactive data visualizations utilizing Chart.js and D3.js templates",
+            "+ Configured automated CI/CD pipelines via GitHub Actions to streamline staging deployments"
+          ]
+        }
+      }
+    ],
+    "skills": [
+      {
+        "skill": "Languages",
+        "description": "JavaScript, TypeScript, Python, SQL, HTML/CSS"
+      },
+      {
+        "skill": "Frameworks & Libraries",
+        "description": "Node.js, React.js, Next.js, Express, NestJS"
+      },
+      {
+        "skill": "Cloud & DevOps",
+        "description": "AWS (S3, EC2, Lambda), Docker, CI/CD, Git"
+      }
+    ],
+    "certificates": [
+      {
+        "certName": "AWS Certified Solutions Architect – Associate",
+        "issuer/description": "Amazon Web Services",
+        "certDate": "March 2025"
+      },
+      {
+        "certName": "IELTS Academic",
+        "issuer/description": "IDP Education (Overall Band 7.5)",
+        "certDate": "November 2023"
+      }
+    ]
+  },
+  "coverLetter": {
+    "header": {
+      "name": "Nguyen Minh Quan",
+      "email": "quan.nguyen@email.com",
+      "phone": "+84 90 123 4567",
+      "location": "Ho Chi Minh City, Vietnam",
+      "date": "June 7, 2026",
+      "recipientName": "Le Hoang Nam",
+      "recipientTitle": "Engineering Recruitment Manager",
+      "companyName": "Nexus Tech Global",
+      "companyAddress": "123 Dien Bien Phu Street, Ward 15, Binh Thanh District, Ho Chi Minh City"
+    },
+    "greeting": "Dear Mr. Le Hoang Nam,",
+    "openingParagraph": "I am writing to express my strong interest in the Senior Full-Stack Engineer position at Nexus Tech Global. Having closely followed your company's expansion into AI-driven fintech solutions, I am eager to bring my three years of robust software engineering background to your dynamic development team.",
+    "bodyParagraphs": [
+      "In my current role at TechVanguard Solutions, I successfully spearheaded the modernization of our core platform, transitioning it from a monolith to a highly scalable microservices architecture on AWS. This initiative successfully boosted application uptime to 99.9% and enhanced overall query speeds by 35%. I specialize in TypeScript, React, and Node.js, aligning perfectly with the core tech stack outline in your job description.",
+      "Furthermore, I have extensive experience leading collaboration between product design and engineering teams to ensure precise deployment. My focused dedication to optimizing database structures and building reusable components allows me to accelerate development cycles without ever sacrificing product quality."
+    ],
+    "closingParagraph": "I welcome the opportunity to discuss further how my technical experience and proactive problem-solving approach can help Nexus Tech Global achieve its upcoming engineering milestones. Thank you for your time and consideration.",
+    "signOff": "Sincerely,\n\nNguyen Minh Quan"
+  }
+}
