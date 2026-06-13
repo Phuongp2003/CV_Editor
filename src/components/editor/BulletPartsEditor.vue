@@ -143,7 +143,7 @@ function onMouseUp() {
         <button
           @click="removePart(pIdx)"
           class="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 p-1 cursor-pointer transition"
-          title="Delete item"
+          :title="t('delete')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -215,7 +215,7 @@ function onMouseUp() {
           {{ draggedItem.type }}
         </div>
         <div class="text-xs text-theme-text-sub font-semibold truncate block">
-          {{ draggedItem.text || 'Empty bullet' }}
+          {{ draggedItem.text || t('no_bullets') }}
         </div>
       </div>
     </Teleport>

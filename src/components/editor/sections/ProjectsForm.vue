@@ -49,7 +49,7 @@ function updateBullets(index: number, bullets: BulletPart[]) {
         :index="index"
         :item="proj"
         :collapseKey="`projects-${index}`"
-        :headerPlaceholder="proj.projectName || 'New Project'"
+        :headerPlaceholder="proj.projectName || t('new_project')"
         @delete="removeProject(index)"
       >
         <!-- Card Body Fields -->
@@ -71,10 +71,7 @@ function updateBullets(index: number, bullets: BulletPart[]) {
         <template #preview>
           <div class="flex justify-between items-center text-xs">
             <span class="font-bold text-theme-text-sub truncate max-w-[260px]">
-              {{
-                proj.projectName ||
-                (store.uiLanguage === 'Vietnamese' ? 'Dự án mới' : 'New Project')
-              }}
+              {{ proj.projectName || t('new_project') }}
             </span>
             <span
               v-if="proj.projectLink"

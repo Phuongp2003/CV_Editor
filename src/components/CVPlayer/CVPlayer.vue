@@ -733,7 +733,47 @@ function generatePDF(shouldDownload = false) {
     }
 
     if (personalInfo2) {
-      doc.text(personalInfo2, midPage, personalInfoY, { align: 'center' })
+      // Build segments: [{text, url?}] separated by ' | '
+      const linkSegments: { text: string; url?: string }[] = []
+      const sep = ' | '
+      const linkItems: { display: string; url: string }[] = []
+      const github = obj.github || ''
+      const website = obj.website || ''
+      const linkedin = obj.linkedin || ''
+      if (github || obj.github_placeholder) {
+        linkItems.push({ display: obj.github_placeholder || github, url: github })
+      }
+      if (website || obj.website_placeholder) {
+        linkItems.push({ display: obj.website_placeholder || website, url: website })
+      }
+      if (linkedin || obj.linkedin_placeholder) {
+        linkItems.push({ display: obj.linkedin_placeholder || linkedin, url: linkedin })
+      }
+
+      // Interleave with separator
+      linkItems.forEach((item, i) => {
+        if (i > 0) linkSegments.push({ text: sep })
+        linkSegments.push({ text: item.display, url: item.url || undefined })
+      })
+
+      // Compute total width to center
+      const totalWidth = linkSegments.reduce((w, seg) => w + doc.getTextWidth(seg.text), 0)
+      let xCursor = midPage - totalWidth / 2
+
+      for (const seg of linkSegments) {
+        const segWidth = doc.getTextWidth(seg.text)
+        if (seg.url && isLink(seg.url)) {
+          doc.setTextColor('#115bca')
+          doc.setDrawColor('#115bca')
+          doc.textWithLink(seg.text, xCursor, personalInfoY, { url: cleanUrl(seg.url) })
+          doc.line(xCursor, personalInfoY, xCursor + segWidth, personalInfoY)
+          doc.setTextColor('#333333')
+          doc.setDrawColor('#000000')
+        } else {
+          doc.text(seg.text, xCursor, personalInfoY)
+        }
+        xCursor += segWidth
+      }
       personalInfoY += contactLineHeight
     }
 
@@ -1267,7 +1307,7 @@ onUnmounted(() => {
             d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
           />
         </svg>
-        <span class="text-sm font-bold text-theme-text">CV PDF Preview</span>
+        <span class="text-sm font-bold text-theme-text">{{ t('pdf_preview_title') }}</span>
       </div>
 
       <Teleport defer to="#navbar-actions">
@@ -1284,7 +1324,7 @@ onUnmounted(() => {
         class="w-full h-full flex-1 border-0"
       ></iframe>
       <div v-else class="flex-1 flex items-center justify-center text-theme-text-muted">
-        Generating PDF preview...
+        {{ t('pdf_preview_title') }}...
       </div>
     </div>
   </div>

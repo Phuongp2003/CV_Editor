@@ -92,11 +92,21 @@ const EMPTY_CV: CVData = {
   website_placeholder: '',
   summary: '',
   objective: '',
-  experiences: [],
-  projects: [],
-  skills: [],
-  educations: [],
-  certificates: [],
+  experiences: [
+    { position: '', company: '', location: '', dates: '', bullets: [] },
+  ],
+  projects: [
+    { projectName: '', projectLink: '', bullets: [] },
+  ],
+  skills: [
+    { skill: '', description: '' },
+  ],
+  educations: [
+    { university: '', degree: '', gpa: '', graduationDate: '' },
+  ],
+  certificates: [
+    { certName: '', 'issuer/description': '', certDate: '' },
+  ],
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────

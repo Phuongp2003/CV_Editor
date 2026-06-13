@@ -21,12 +21,8 @@ const { sizeMultiplier, selectedFont, customFontName, language, bulletChars } = 
       <p class="text-xs text-theme-text-muted mt-0.5">
         {{
           store.editViewMode === 'layout'
-            ? store.uiLanguage === 'Vietnamese'
-              ? 'Kéo thả để sắp xếp các mục hiển thị'
-              : 'Drag & drop sections to arrange layout'
-            : store.uiLanguage === 'Vietnamese'
-              ? 'Nhập thông tin chi tiết cho CV của bạn'
-              : 'Enter detail information for your CV'
+            ? t('layout_desc')
+            : t('content_desc')
         }}
       </p>
     </div>
@@ -47,7 +43,7 @@ const { sizeMultiplier, selectedFont, customFontName, language, bulletChars } = 
               : 'text-theme-text-muted hover:text-theme-text border border-transparent',
           ]"
         >
-          {{ store.uiLanguage === 'Vietnamese' ? 'Dạng Tab' : 'Tabs' }}
+          {{ t('tabs_mode_label') }}
         </button>
         <button
           @click="store.editorMode = 'outline'"
@@ -58,14 +54,14 @@ const { sizeMultiplier, selectedFont, customFontName, language, bulletChars } = 
               : 'text-theme-text-muted hover:text-theme-text border border-transparent',
           ]"
         >
-          {{ store.uiLanguage === 'Vietnamese' ? 'Dạng Cuộn' : 'Outline' }}
+          {{ t('outline_mode_label') }}
         </button>
       </div>
       <!-- Style & Formatting UPopover -->
       <UPopover :content="{ align: 'end', side: 'bottom', sideOffset: 8 }" class="inline-block">
         <button
           class="p-2 text-theme-text-muted hover:text-theme-text hover:bg-theme-element border border-theme-border bg-theme-muted/30 rounded-lg transition duration-150 cursor-pointer flex items-center justify-center shadow-sm"
-          :title="store.uiLanguage === 'Vietnamese' ? 'Cấu hình định dạng' : 'Formatting Settings'"
+          :title="t('formatting_settings')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -251,7 +247,7 @@ const { sizeMultiplier, selectedFont, customFontName, language, bulletChars } = 
               d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
             />
           </svg>
-          {{ store.uiLanguage === 'Vietnamese' ? 'Chỉnh Bố Cục' : 'Adjust Layout' }}
+          {{ t('adjust_layout') }}
         </button>
         <button
           @click="store.editViewMode = 'content'"
@@ -276,7 +272,7 @@ const { sizeMultiplier, selectedFont, customFontName, language, bulletChars } = 
               d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
             />
           </svg>
-          {{ store.uiLanguage === 'Vietnamese' ? 'Sửa Nội Dung' : 'Edit Content' }}
+          {{ t('edit_content_mode') }}
         </button>
       </div>
     </div>

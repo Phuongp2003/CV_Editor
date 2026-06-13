@@ -11,7 +11,6 @@ const { t } = useI18n()
   <div class="flex flex-col gap-1.5">
     <label class="text-xs text-theme-text-muted">
       {{ t('objective_title') }}
-      <span class="text-theme-text-muted">(supports *italic*, **bold**, and <u>underline</u>)</span>
     </label>
     <RichTextEditor
       v-model="store.cvData.objective"

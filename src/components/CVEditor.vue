@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
 import { useCVStore } from '@/stores/cv'
 import { useI18n } from '@/composables/useI18n'
 import sampleData from '@/assets/sample.json'
@@ -37,12 +36,6 @@ async function loadSampleCV() {
   }
 }
 
-onMounted(() => {
-  // Load sample data if no name is set yet (fresh start)
-  if (!store.cvData.name) {
-    loadSampleCV()
-  }
-})
 </script>
 
 <template>

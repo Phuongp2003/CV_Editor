@@ -148,11 +148,7 @@ function toggleSection(secKey: SectionKey) {
         />
       </svg>
       <p class="text-xs text-theme-text-muted leading-relaxed font-medium">
-        {{
-          store.uiLanguage === 'Vietnamese'
-            ? 'Kéo thả các mục bên dưới để sắp xếp thứ tự hiển thị trực quan trên CV, bật/tắt mắt hiển thị hoặc đổi tên nhãn tiêu đề. Mọi thay đổi sẽ áp dụng ngay tức thì!'
-            : 'Drag and drop sections to rearrange their order, click the eye icon to toggle visibility, or edit titles directly. Changes are applied instantly!'
-        }}
+        {{ t('layout_help') }}
       </p>
     </div>
 
@@ -185,9 +181,7 @@ function toggleSection(secKey: SectionKey) {
         <button
           @click="emit('edit-section', 'personal')"
           class="p-1.5 rounded-lg text-theme-text-muted hover:text-theme-secondary hover:bg-theme-secondary-bg transition cursor-pointer"
-          :title="
-            store.uiLanguage === 'Vietnamese' ? 'Chỉnh sửa thông tin cá nhân' : 'Edit Personal Info'
-          "
+          :title="t('edit_personal_info')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -206,7 +200,7 @@ function toggleSection(secKey: SectionKey) {
         </button>
         <span
           class="text-[10px] text-theme-text-muted uppercase font-bold tracking-wider mr-2 select-none"
-          >{{ store.uiLanguage === 'Vietnamese' ? 'Bắt Buộc' : 'Required' }}</span
+          >{{ t('required') }}</span
         >
       </div>
     </div>
@@ -230,7 +224,7 @@ function toggleSection(secKey: SectionKey) {
           <div
             @mousedown="startDrag($event, index, secKey)"
             class="cursor-grab text-theme-text-muted hover:text-theme-secondary p-1 flex items-center select-none bg-theme-element rounded"
-            title="Drag to reorder"
+            :title="t('drag_to_reorder_help')"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -262,11 +256,7 @@ function toggleSection(secKey: SectionKey) {
             v-if="isSectionEnabled(secKey)"
             @click="emit('edit-section', secKey)"
             class="p-1.5 rounded-lg text-theme-text-muted hover:text-theme-secondary hover:bg-theme-secondary-bg transition cursor-pointer"
-            :title="
-              store.uiLanguage === 'Vietnamese'
-                ? `Chỉnh sửa ${getSectionLabel(secKey)}`
-                : `Edit ${getSectionLabel(secKey)}`
-            "
+            :title="t('edit_section_title').replace('{section}', getSectionLabel(secKey))"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -288,7 +278,7 @@ function toggleSection(secKey: SectionKey) {
           <button
             @click="toggleSection(secKey)"
             class="p-1.5 rounded-lg text-theme-text-muted hover:text-theme-text hover:bg-theme-element transition cursor-pointer"
-            :title="isSectionEnabled(secKey) ? 'Hide section' : 'Show section'"
+            :title="isSectionEnabled(secKey) ? t('section_hide') : t('section_show')"
           >
             <svg
               v-if="isSectionEnabled(secKey)"
@@ -342,7 +332,7 @@ function toggleSection(secKey: SectionKey) {
         }"
       >
         <div class="text-[10px] font-bold text-theme-text-muted uppercase tracking-wider mb-1">
-          {{ store.uiLanguage === 'Vietnamese' ? 'Đang Di Chuyển' : 'Moving Section' }}
+          {{ t('moving_section') }}
         </div>
         <div class="text-xs font-extrabold text-theme-secondary capitalize">
           {{ getSectionLabel(draggedItem) }}

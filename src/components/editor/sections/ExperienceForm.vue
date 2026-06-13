@@ -45,7 +45,7 @@ function updateBullets(index: number, bullets: BulletPart[]) {
         :index="index"
         :item="exp"
         :collapseKey="`exp-${index}`"
-        :headerPlaceholder="exp.company || exp.position || 'Experience Card'"
+        :headerPlaceholder="exp.company || exp.position || t('experience_card')"
         @delete="removeExperience(index)"
       >
         <!-- Fields -->
@@ -75,7 +75,7 @@ function updateBullets(index: number, bullets: BulletPart[]) {
         <template #preview>
           <div class="flex justify-between items-center text-xs">
             <div class="font-bold text-theme-text-sub truncate max-w-[280px]">
-              {{ exp.company || 'New Company' }}
+              {{ exp.company || t('new_company') }}
               <span v-if="exp.position" class="font-normal text-theme-text-muted"
                 >| {{ exp.position }}</span
               >

@@ -143,24 +143,26 @@ const promptTemplate = `You are an expert CV and Cover Letter structuring assist
         "company": "string",
         "location": "string (e.g. City, Country)",
         "dates": "string (e.g. October 2024 - Present or MM/YYYY - MM/YYYY)",
-        "bullets": {
-          "description": "string (optional overview line for the role, no bullet prefix)",
-          "items": [
-            "string (bullet text starting with a prefix: '-' for L1 main bullet, '+' or '--' for L2 nested sub-bullet, and '---' for L3 deep nested sub-bullet)"
-          ]
-        }
+        "bullets": [
+          {
+            "id": "string (any unique short string, e.g. 'a1b2c3')",
+            "type": "string ('l1' | 'l2' | 'l3' | 'header')",
+            "text": "string (the bullet content, supports **bold**, *italic*, ***bolditalic***, <u>underline</u>)"
+          }
+        ]
       }
     ],
     "projects": [
       {
         "projectName": "string",
         "projectLink": "string (full URL)",
-        "bullets": {
-          "description": "string (optional overview line for the project, no bullet prefix)",
-          "items": [
-            "string (bullet text starting with a prefix: '-' for L1 main bullet, '+' or '--' for L2 nested sub-bullet, and '---' for L3 deep nested sub-bullet)"
-          ]
-        }
+        "bullets": [
+          {
+            "id": "string (any unique short string, e.g. 'a1b2c3')",
+            "type": "string ('l1' | 'l2' | 'l3' | 'header')",
+            "text": "string (the bullet content, supports **bold**, *italic*, ***bolditalic***, <u>underline</u>)"
+          }
+        ]
       }
     ],
     "skills": [
@@ -243,13 +245,13 @@ const promptTemplate = `You are an expert CV and Cover Letter structuring assist
 - **Contact Details**: Keep link placeholders short for previewing (e.g. github.com/username instead of the full URL).
 - **Summary & Objective**: Customize to address the job description's main requirements. Focus on concrete accomplishments and years of experience.
 - **Experience Bullets**:
-  - Main accomplishments should be written as Level 1 bullets (prefixed with "- ").
-  - Supporting technical details or metrics should be nested as Level 2 (prefixed with "+" or "-- ") or Level 3 (prefixed with "--- ").
-  - Start main bullets with strong, active verbs in the past tense (or appropriate structure for the target language).
-  - For the overview line of experiences (\`cv.experiences.bullets.description\`), write a direct, natural overview. Do NOT prepend "Context:" or wrap the entire text in italic stars (like \`*Context: ...*\`).
+  - Use \`type: "l1"\` for main accomplishments, \`type: "l2"\` for supporting details or metrics, \`type: "l3"\` for deep nested details, and \`type: "header"\` for a role overview/context header.
+  - Each bullet must be a separate object in the \`bullets\` array with a unique \`id\`, a \`type\`, and the \`text\`.
+  - Start l1 bullets with strong, active verbs in the past tense (or appropriate structure for the target language).
+  - Write a natural overview context as a \`type: "header"\` entry if needed (e.g. for role context). Do NOT write "Context:" as a prefix.
 - **Projects**:
   - Only list real, meaningful projects. Avoid boilerplate or trivial tutorial projects.
-  - For the overview line of projects (\`cv.projects.bullets.description\`), write a direct, natural overview. Do NOT prepend "Context:" or wrap the entire text in italic stars (like \`*Context: ...*\`).
+  - Use a \`type: "header"\` entry as the first bullet if a natural overview line is needed. Do NOT prepend "Context:" to it.
 - **Skills**:
   - Group skills into logical categories (e.g., Languages, Frameworks, Infrastructure/Tools) rather than listing everything as one long list.
   - In \`cv.skills.description\`, list the technologies/skills naturally. Do NOT wrap the entire description in bold (\`**\`); only bold at most 2-3 key technologies in each list to maintain visual hierarchy, or leave them unformatted if all are of equal importance.
@@ -266,8 +268,8 @@ const promptTemplate = `You are an expert CV and Cover Letter structuring assist
 - Rich text formatting is fully supported and rendered in the following JSON fields:
   - \`cv.summary\`
   - \`cv.objective\`
-  - \`text\` in \`cv.experiences.bullets.items\`
-  - \`text\` in \`cv.projects.bullets.items\`
+  - \`text\` in \`cv.experiences.bullets[].text\`
+  - \`text\` in \`cv.projects.bullets[].text\`
   - \`description\` in \`cv.skills\`
   - \`issuer/description\` in \`cv.certificates\`
 
@@ -359,142 +361,7 @@ const seoKeywords = computed(() => {
           </button>
         </section>
 
-        <hr v-if="isDev" class="border-theme-sub" />
 
-        <!-- ── SEO & Social Preview ── -->
-        <section v-if="isDev" class="space-y-4">
-          <h3
-            class="text-xs font-bold text-theme-text-muted uppercase tracking-wider flex items-center gap-2"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="w-3.5 h-3.5 text-primary-600 dark:text-primary-400"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-.554-8.243-1.558m16.486 0a12.012 12.012 0 01-16.486 0"
-              />
-            </svg>
-            {{
-              store.uiLanguage === 'Vietnamese'
-                ? 'SEO & Xem trước liên kết'
-                : 'SEO & Social Preview'
-            }}
-          </h3>
-
-          <p class="text-xs text-theme-text-muted leading-relaxed">
-            {{
-              store.uiLanguage === 'Vietnamese'
-                ? 'Thông tin SEO được cấu hình động thông qua tệp Github Actions (.github/workflows/deploy.yml) khi build & deploy.'
-                : 'SEO metadata is configured dynamically via the GitHub Actions workflow (.github/workflows/deploy.yml) during deployment.'
-            }}
-          </p>
-
-          <!-- Active Metadata Details -->
-          <div
-            class="bg-theme-muted/50 p-3 rounded-lg border border-theme-border/60 space-y-1.5 text-xs text-theme-text-sub"
-          >
-            <div><strong class="text-theme-text-muted">Title:</strong> {{ seoTitle }}</div>
-            <div>
-              <strong class="text-theme-text-muted">Description:</strong> {{ seoDescription }}
-            </div>
-            <div>
-              <strong class="text-theme-text-muted">Keywords:</strong>
-              <span class="italic text-theme-text-muted">{{ seoKeywords }}</span>
-            </div>
-          </div>
-
-          <!-- Google Search Preview -->
-          <div
-            class="bg-white dark:bg-slate-900 border border-theme-border rounded-xl p-4 space-y-2 shadow-sm"
-          >
-            <span
-              class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block"
-              >Google Search Preview</span
-            >
-            <div class="space-y-1 font-sans">
-              <div
-                class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 truncate"
-              >
-                <span>cv-editor.fynx.io.vn</span>
-                <span class="text-[10px] text-slate-400">› resume-builder</span>
-              </div>
-              <a
-                href="#"
-                class="text-blue-600 dark:text-blue-400 hover:underline text-base font-medium leading-snug block truncate"
-                >{{ seoTitle }}</a
-              >
-              <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                {{ seoDescription }}
-              </p>
-            </div>
-          </div>
-
-          <!-- Social Share Card Preview -->
-          <div
-            class="bg-white dark:bg-slate-900 border border-theme-border rounded-xl overflow-hidden shadow-sm"
-          >
-            <div class="px-4 py-2 border-b border-theme-sub flex items-center justify-between">
-              <span
-                class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider"
-                >Social Share Preview</span
-              >
-              <span
-                class="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded"
-                >Card</span
-              >
-            </div>
-            <div
-              class="aspect-[1.91/1] bg-slate-100 dark:bg-slate-800 relative flex items-center justify-center border-b border-theme-sub"
-            >
-              <div
-                class="absolute inset-0 bg-grid-slate-200/50 dark:bg-grid-slate-700/30 [mask-image:radial-gradient(ellipse_at_center,white,transparent)]"
-              ></div>
-              <div class="relative flex flex-col items-center gap-2">
-                <div
-                  class="w-10 h-10 bg-white dark:bg-slate-950 rounded-xl flex items-center justify-center shadow-md border border-slate-200 dark:border-slate-800"
-                >
-                  <svg class="w-6 h-6 text-primary-500" viewBox="0 0 462 462">
-                    <path
-                      d="M397.35 132.52 287.76 22.93a9.61 9.61 0 0 0-7.07-2.93h-179a40 40 0 0 0-40 40v342a40 40 0 0 0 40 40h258.59a40 40 0 0 0 40-40V139.59a10.07 10.07 0 0 0-2.93-7.07zm-31.21-2.93h-60.45a15 15 0 0 1-15-15V54.14zM360.28 422H101.72a20 20 0 0 1-20-20V60a20 20 0 0 1 20-20h169v74.59a35 35 0 0 0 35 35h74.59V402a20 20 0 0 1-20.03 20z"
-                      fill="currentColor"
-                    ></path>
-                    <path
-                      d="M190.83 174a40.5 40.5 0 1 0-40.5-40.5 40.55 40.55 0 0 0 40.5 40.5zm0-61a20.5 20.5 0 1 1-20.5 20.5 20.53 20.53 0 0 1 20.5-20.5zM132.22 251.5a10 10 0 0 0 10-10v-6.1a37.11 37.11 0 0 1 37.06-37.06h23.1a37.11 37.11 0 0 1 37.06 37.06v6.1a10 10 0 0 0 20 0v-6.1a57.13 57.13 0 0 0-57.06-57.06h-23.1a57.13 57.13 0 0 0-57.06 57.06v6.1a10 10 0 0 0 10 10zM126.65 324.67H248a10 10 0 0 0 0-20H126.65a10 10 0 1 0 0 20zM316.65 357.33h-190a10 10 0 1 0 0 20h190a10 10 0 0 0 0-20z"
-                      fill="currentColor"
-                    ></path>
-                  </svg>
-                </div>
-                <span
-                  class="text-[10px] font-bold tracking-tight text-slate-700 dark:text-slate-300"
-                  >CV Workspace & Editor</span
-                >
-              </div>
-            </div>
-            <div class="p-3 space-y-0.5 bg-slate-50 dark:bg-slate-900/50">
-              <span class="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-semibold"
-                >cv-editor.fynx.io.vn</span
-              >
-              <h4
-                class="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1 leading-snug"
-              >
-                {{ seoTitle }}
-              </h4>
-              <p
-                class="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1 leading-relaxed"
-              >
-                {{ seoDescription }}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <hr v-if="isDev" class="border-theme-sub" />
 
         <!-- ── Load JSON ── -->
         <section class="space-y-3">
@@ -598,7 +465,7 @@ const seoKeywords = computed(() => {
                     </span>
                   </div>
                   <p class="text-xs text-theme-text-muted line-clamp-1" :title="profile.bio || ''">
-                    {{ profile.bio || 'Developer' }}
+                    {{ profile.bio || t('developer_fallback') }}
                   </p>
                 </div>
               </div>
@@ -609,17 +476,17 @@ const seoKeywords = computed(() => {
                     <svg class="w-3.5 h-3.5 text-theme-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
-                    <span class="font-semibold text-theme-text">{{ profile.public_repos }}</span> repos
+                    <span class="font-semibold text-theme-text">{{ profile.public_repos }}</span> {{ t('repos') }}
                   </span>
                   <span class="flex items-center gap-1">
                     <svg class="w-3.5 h-3.5 text-theme-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
-                    <span class="font-semibold text-theme-text">{{ profile.followers }}</span> followers
+                    <span class="font-semibold text-theme-text">{{ profile.followers }}</span> {{ t('followers') }}
                   </span>
                 </div>
                 <span class="text-primary-500 font-bold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
-                  View Profile
+                  {{ t('view_profile') }}
                   <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                   </svg>

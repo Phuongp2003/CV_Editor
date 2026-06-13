@@ -118,14 +118,14 @@ function scrollToSection(value: string) {
         class="py-2.5 pb-3 border-b border-theme-border/60 mb-5 flex flex-wrap gap-1.5 items-center"
       >
         <span class="text-xs text-theme-text-muted mr-1 select-none">
-          {{ store.uiLanguage === 'Vietnamese' ? 'Bản đồ mục:' : 'Jump to:' }}
+          {{ t('nav_jump_to') }}
         </span>
         <button
           v-for="(item, idx) in tabItems"
           :key="'nav-' + item.value"
           @click="scrollToSection(item.value)"
           class="px-2.5 py-1 text-xs rounded-md bg-theme-muted hover:bg-primary-500/10 hover:text-primary-500 border border-theme-border hover:border-primary-500/30 transition-all cursor-pointer flex items-center gap-1 shadow-sm group font-semibold"
-          :title="`${store.uiLanguage === 'Vietnamese' ? 'Vị trí' : 'Position'} ${idx + 1}`"
+          :title="`${t('nav_position')} ${idx + 1}`"
         >
           <span
             class="w-1.5 h-1.5 rounded-full bg-theme-text-muted group-hover:bg-primary-500 transition-colors"

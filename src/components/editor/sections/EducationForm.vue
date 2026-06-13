@@ -37,7 +37,7 @@ function removeEducation(index: number) {
         :index="index"
         :item="edu"
         :collapseKey="`education-${index}`"
-        :headerPlaceholder="edu.university || edu.degree || 'Education Card'"
+        :headerPlaceholder="edu.university || edu.degree || t('education_card')"
         @delete="removeEducation(index)"
       >
         <!-- Card Body Fields -->
@@ -64,7 +64,7 @@ function removeEducation(index: number) {
         <template #preview>
           <div class="flex justify-between items-center text-xs">
             <div class="font-bold text-theme-text-sub truncate max-w-[280px]">
-              {{ edu.university || 'New University' }}
+              {{ edu.university || t('new_university') }}
               <span v-if="edu.degree" class="font-normal text-theme-text-muted"
                 >| {{ edu.degree }}</span
               >

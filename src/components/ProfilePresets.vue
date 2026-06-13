@@ -77,14 +77,14 @@ function savePreset() {
 
   presets.value[slotIdx] = currentPreset
   localStorage.setItem(STORAGE_KEY, JSON.stringify(presets.value))
-  showPresetMessage(`Saved to Slot ${slotIdx + 1}!`)
+  showPresetMessage(t('preset_saved_to_slot').replace('{slot}', String(slotIdx + 1)))
 }
 
 function loadPreset() {
   const slotIdx = selectedSlot.value
   const preset = presets.value[slotIdx]
   if (!preset) {
-    showPresetMessage(`Slot ${slotIdx + 1} is empty!`, true)
+    showPresetMessage(t('preset_slot_empty').replace('{slot}', String(slotIdx + 1)), true)
     return
   }
 
@@ -122,19 +122,19 @@ function loadPreset() {
     store.language = old.language || 'English'
   }
 
-  showPresetMessage(`Loaded from Slot ${slotIdx + 1}!`)
+  showPresetMessage(t('preset_loaded_from_slot').replace('{slot}', String(slotIdx + 1)))
 }
 
 function deletePreset() {
   const slotIdx = selectedSlot.value
   if (!presets.value[slotIdx]) {
-    showPresetMessage(`Slot ${slotIdx + 1} is already empty!`, true)
+    showPresetMessage(t('preset_already_empty').replace('{slot}', String(slotIdx + 1)), true)
     return
   }
 
   presets.value[slotIdx] = null
   localStorage.setItem(STORAGE_KEY, JSON.stringify(presets.value))
-  showPresetMessage(`Deleted Slot ${slotIdx + 1}!`)
+  showPresetMessage(t('preset_deleted_slot').replace('{slot}', String(slotIdx + 1)))
 }
 </script>
 
@@ -142,9 +142,7 @@ function deletePreset() {
   <UPopover :content="{ align: 'end', side: 'bottom', sideOffset: 8 }">
     <button
       class="bg-theme-element hover:bg-theme-hover border border-theme-border text-theme-text-sub hover:text-theme-text px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 shadow-sm"
-      :title="
-        store.uiLanguage === 'Vietnamese' ? 'Quản lý các bản lưu hồ sơ' : 'Manage profile presets'
-      "
+      :title="t('preset_manage')"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -160,7 +158,7 @@ function deletePreset() {
           d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm-1.2 6.477a6 6 0 0 0-5.1 0A2.25 2.25 0 0 1 2.25 13.611V12.75a2.25 2.25 0 0 1 2.25-2.25h1.5a2.25 2.25 0 0 1 2.25 2.25v.861a2.25 2.25 0 0 1-1.35 2.066Z"
         />
       </svg>
-      <span>{{ store.uiLanguage === 'Vietnamese' ? 'Hồ Sơ Lưu' : 'Presets' }}</span>
+      <span>{{ t('preset_btn') }}</span>
     </button>
 
     <template #content>
@@ -184,19 +182,19 @@ function deletePreset() {
               d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm-1.2 6.477a6 6 0 0 0-5.1 0A2.25 2.25 0 0 1 2.25 13.611V12.75a2.25 2.25 0 0 1 2.25-2.25h1.5a2.25 2.25 0 0 1 2.25 2.25v.861a2.25 2.25 0 0 1-1.35 2.066Z"
             />
           </svg>
-          Profile Slots (Presets)
+          {{ t('preset_title') }}
         </h4>
 
         <div class="flex flex-col gap-1.5">
           <label class="text-[10px] text-theme-text-muted font-bold uppercase tracking-wider"
-            >Select Save Slot</label
+            >{{ t('preset_select_slot') }}</label
           >
           <select
             v-model="selectedSlot"
             class="w-full bg-theme-card border border-theme-border rounded-lg p-2 text-theme-text text-xs focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-sm"
           >
             <option v-for="(preset, index) in presets" :key="index" :value="index">
-              Slot {{ index + 1 }} {{ preset ? `(${getPresetDisplayName(preset)})` : '(Empty)' }}
+              {{ t('preset_slot') }} {{ index + 1 }} {{ preset ? `(${getPresetDisplayName(preset)})` : `(${t('preset_empty')})` }}
             </option>
           </select>
         </div>
@@ -206,20 +204,20 @@ function deletePreset() {
             @click="savePreset"
             class="flex-1 py-1.5 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-md select-none text-center"
           >
-            Save Current
+            {{ t('preset_save_current') }}
           </button>
           <button
             @click="loadPreset"
             class="flex-1 py-1.5 bg-theme-element hover:bg-theme-hover border border-theme-border text-theme-text-sub hover:text-theme-text font-bold rounded-lg text-xs transition cursor-pointer shadow-sm select-none text-center"
           >
-            Load Preset
+            {{ t('preset_load') }}
           </button>
           <button
             @click="deletePreset"
             class="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-md select-none text-center"
             title="Delete preset slot"
           >
-            Delete
+            {{ t('preset_delete') }}
           </button>
         </div>
 

@@ -17,14 +17,14 @@ function handleImageUpload(e: Event) {
   // Validate type
   const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
   if (!validTypes.includes(file.type)) {
-    errorMsg.value = 'Unsupported image type. Please upload PNG, JPEG, or WEBP.'
+    errorMsg.value = t('image_type_error')
     target.value = ''
     return
   }
 
   // Validate size < 5MB
   if (file.size > 5 * 1024 * 1024) {
-    errorMsg.value = 'Image is too large. Maximum size is 5MB.'
+    errorMsg.value = t('image_size_error')
     target.value = ''
     return
   }
@@ -107,7 +107,7 @@ function removeImage() {
               {{ t('remove_image') }}
             </button>
           </div>
-          <p class="text-[10px] text-theme-text-muted">PNG, JPEG, WEBP. Max 5MB.</p>
+          <p class="text-[10px] text-theme-text-muted">{{ t('image_hint') }}</p>
         </div>
       </div>
       <!-- Error Message -->
@@ -136,70 +136,64 @@ function removeImage() {
     <div class="flex flex-col gap-1.5">
       <label class="text-xs text-theme-text-muted flex justify-between">
         <span>{{ t('github_link') }}</span>
-        <span class="text-[10px] text-theme-text-muted font-normal"
-          >(adds https:// if missing)</span
-        >
+        <span class="text-[10px] text-theme-text-muted font-normal">{{ t('url_auto_https') }}</span>
       </label>
       <input
         v-model="store.cvData.github"
         type="text"
         class="input-field"
-        placeholder="e.g. github.com/username"
+        :placeholder="t('github_placeholder_eg')"
       />
     </div>
     <div class="flex flex-col gap-1.5">
-      <label class="text-xs text-theme-text-muted">GitHub Display Text (Preview)</label>
+      <label class="text-xs text-theme-text-muted">{{ t('github_display') }}</label>
       <input
         v-model="store.cvData.github_placeholder"
         type="text"
         class="input-field"
-        placeholder="e.g. github.com/username"
+        :placeholder="t('github_placeholder_eg')"
       />
     </div>
     <div class="flex flex-col gap-1.5">
       <label class="text-xs text-theme-text-muted flex justify-between">
         <span>{{ t('linkedin_link') }}</span>
-        <span class="text-[10px] text-theme-text-muted font-normal"
-          >(adds https:// if missing)</span
-        >
+        <span class="text-[10px] text-theme-text-muted font-normal">{{ t('url_auto_https') }}</span>
       </label>
       <input
         v-model="store.cvData.linkedin"
         type="text"
         class="input-field"
-        placeholder="e.g. linkedin.com/in/username"
+        :placeholder="t('linkedin_placeholder_eg')"
       />
     </div>
     <div class="flex flex-col gap-1.5">
-      <label class="text-xs text-theme-text-muted">LinkedIn Display Text (Preview)</label>
+      <label class="text-xs text-theme-text-muted">{{ t('linkedin_display') }}</label>
       <input
         v-model="store.cvData.linkedin_placeholder"
         type="text"
         class="input-field"
-        placeholder="e.g. linkedin.com/in/username"
+        :placeholder="t('linkedin_placeholder_eg')"
       />
     </div>
     <div class="flex flex-col gap-1.5">
       <label class="text-xs text-theme-text-muted flex justify-between">
         <span>{{ t('website') }}</span>
-        <span class="text-[10px] text-theme-text-muted font-normal"
-          >(adds https:// if missing)</span
-        >
+        <span class="text-[10px] text-theme-text-muted font-normal">{{ t('url_auto_https') }}</span>
       </label>
       <input
         v-model="store.cvData.website"
         type="text"
         class="input-field"
-        placeholder="e.g. mywebsite.com"
+        :placeholder="t('website_placeholder_eg')"
       />
     </div>
     <div class="flex flex-col gap-1.5">
-      <label class="text-xs text-theme-text-muted">Website Display Text (Preview)</label>
+      <label class="text-xs text-theme-text-muted">{{ t('website_display') }}</label>
       <input
         v-model="store.cvData.website_placeholder"
         type="text"
         class="input-field"
-        placeholder="e.g. mywebsite.com"
+        :placeholder="t('website_placeholder_eg')"
       />
     </div>
   </div>
