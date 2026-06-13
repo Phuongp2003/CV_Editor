@@ -109,6 +109,7 @@ Experiences Section:
 - Start each bullet point with a past-tense action verb.
 - Present timeline and technologies clearly.
 - For the `bullets` array, the **first element** should act as a short header/summary for the experience, and the **remaining elements** should be detailed bullet points expanding on that header.
+- For the first element (the header/overview), write a direct description. Do NOT prepend "Context:" or wrap the entire header in italic formatting (like *Context: ...*).
 
 Projects:
 - Include projects that are relevant to the job.
@@ -116,11 +117,13 @@ Projects:
 - Avoid trivial or tutorial-based ones.
 - Include demo links or GitHub repos if applicable.
 - For the `bullets` array of each project, the **first element** should be a concise summary sentence, and the **remaining elements** should be more specific supporting bullet points.
+- For the first element (the project overview), write a direct description. Do NOT prepend "Context:" or wrap the entire overview in italic formatting (like *Context: ...*).
 
 Skills:
 - Highlight only relevant skills for the job.
 - Do not list every technology ever used.
 - Format clearly, and group related skills where applicable.
+- Do NOT wrap the entire skill description in bold (**); only bold at most 2-3 key highlights or technologies, or leave them unformatted if all are of equal importance.
 
 Educations:
 - List educational background clearly.

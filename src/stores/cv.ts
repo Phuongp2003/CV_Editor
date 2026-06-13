@@ -195,7 +195,13 @@ export const useCVStore = defineStore('cv', () => {
     }
 
     if (Array.isArray(data.sectionsOrder)) {
-      sectionsOrder.value = [...data.sectionsOrder] as SectionKey[]
+      const order = [...data.sectionsOrder] as SectionKey[]
+      DEFAULT_SECTIONS_ORDER.forEach((key) => {
+        if (!order.includes(key)) {
+          order.push(key)
+        }
+      })
+      sectionsOrder.value = order
     } else {
       sectionsOrder.value = [...DEFAULT_SECTIONS_ORDER]
     }
