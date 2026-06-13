@@ -2,21 +2,63 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <link rel="icon" type="image/svg+xml" href="/icon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="index, follow">
+
+    <!-- ── Primary SEO ── -->
     <title>%VITE_SEO_TITLE%</title>
     <meta name="description" content="%VITE_SEO_DESCRIPTION%" />
     <meta name="keywords" content="%VITE_SEO_KEYWORDS%" />
     <meta name="author" content="%VITE_SEO_AUTHOR%" />
+    <link rel="canonical" href="%VITE_SEO_CANONICAL%" />
+
+    <!-- ── Open Graph ── -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="%VITE_SEO_CANONICAL%" />
     <meta property="og:title" content="%VITE_SEO_TITLE%" />
     <meta property="og:description" content="%VITE_SEO_DESCRIPTION%" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="%VITE_SEO_OG_IMAGE%" />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content="%VITE_SEO_CANONICAL%og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:site_name" content="CV Editor" />
+
+    <!-- ── Twitter / X Card ── -->
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="%VITE_SEO_TITLE%" />
     <meta name="twitter:description" content="%VITE_SEO_DESCRIPTION%" />
-    <meta name="twitter:image" content="%VITE_SEO_OG_IMAGE%" />
-    <!-- Fonts -->
+    <meta name="twitter:image" content="%VITE_SEO_CANONICAL%og-image.png" />
+
+    <!-- ── Structured Data (JSON-LD) ── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "CV Editor",
+      "url": "%VITE_SEO_CANONICAL%",
+      "description": "%VITE_SEO_DESCRIPTION%",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "CV / Resume builder",
+        "Cover letter generator",
+        "PDF export",
+        "Multiple language support",
+        "AI prompt assistant"
+      ]
+    }
+    </script>
+
+    <!-- ── Favicon ── -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+
+    <!-- ── Fonts ── -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
@@ -30,7 +72,25 @@
     <script src="/fonts/NotoSansSC-Bold-normal.js"></script>
   </head>
   <body>
+    <!-- Static fallback for crawlers that don't run JavaScript -->
+    <noscript>
+      <main style="font-family:sans-serif;max-width:720px;margin:60px auto;padding:0 20px">
+        <h1>CV Editor — Free Online Resume &amp; Cover Letter Builder</h1>
+        <p>%VITE_SEO_DESCRIPTION%</p>
+        <h2>Features</h2>
+        <ul>
+          <li>Build and edit your CV with a live PDF preview</li>
+          <li>Generate cover letters tailored to any job description</li>
+          <li>Export to PDF, DOCX, HTML, or JSON</li>
+          <li>Multi-language support: English, Vietnamese, Japanese, Korean, Chinese</li>
+          <li>AI prompt helper for ChatGPT &amp; Gemini</li>
+          <li>Free, no login required</li>
+        </ul>
+      </main>
+    </noscript>
+
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
+
