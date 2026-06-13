@@ -152,6 +152,9 @@ const translations = {
 
     // UI Language
     ui_language: 'UI Language',
+    about_us: 'About Us',
+    role_creator: 'Initiated & Designed',
+    role_developer: 'Expanded & Co-developed',
   },
 
   Vietnamese: {
@@ -301,6 +304,9 @@ const translations = {
 
     // UI Language
     ui_language: 'Ngôn ngữ giao diện',
+    about_us: 'Về chúng tôi',
+    role_creator: 'Khởi xướng & Thiết kế',
+    role_developer: 'Mở rộng & Phát triển',
   },
 } as const
 
