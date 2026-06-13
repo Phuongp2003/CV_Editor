@@ -1,0 +1,59 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main # Trigger on push to the main branch
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    # ─── Environment Variables (User Configurable) ───
+    # Customize your website URL, CNAME, and SEO meta tags here
+    env:
+      CNAME: 'cv-editor.fynx.io.vn' # Leave empty if you do not use a custom domain
+      VITE_BASE_URL: '/' # Change to '/repo-name/' if using default username.github.io/repo-name path
+      VITE_SEO_TITLE: 'CV Editor | Professional Resume & Cover Letter Builder'
+      VITE_SEO_DESCRIPTION: 'Build your professional CV and cover letter in minutes. Clean layouts, customizable sections, support for multiple languages, and direct PDF/DOCX download.'
+      VITE_SEO_KEYWORDS: 'CV builder, resume editor, cover letter generator, professional resume, export pdf, export docx, cv online'
+      VITE_SEO_AUTHOR: 'Nguyen Minh Quan'
+      VITE_SEO_OG_IMAGE: '/icon.svg'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate CNAME dynamically
+        run: |
+          if [ ! -z "${{ env.CNAME }}" ]; then
+            echo "${{ env.CNAME }}" > public/CNAME
+            echo "CNAME created: ${{ env.CNAME }}"
+          else
+            # Ensure any leftover CNAME is deleted if custom domain is disabled
+            rm -f public/CNAME
+            echo "CNAME disabled"
+          fi
+
+      - name: Build Application
+        run: npm run build
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist
+          branch: gh-pages # Branch to deploy static assets to
+          clean: true
