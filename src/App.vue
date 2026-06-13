@@ -10,6 +10,7 @@ import ProfilePresets from '@/components/ProfilePresets.vue'
 const store = useCVStore()
 const isSettingsOpen = ref(false)
 const { t } = useI18n()
+const appVersion = import.meta.env.VITE_APP_VERSION || ''
 </script>
 
 <template>
@@ -28,11 +29,19 @@ const { t } = useI18n()
           >
             CV
           </div>
-          <h1
-            class="text-lg font-extrabold tracking-tight bg-gradient-to-r from-primary-600 to-theme-secondary dark:from-primary-550 dark:to-theme-secondary bg-clip-text text-transparent"
-          >
-            {{ t('app_title') }}
-          </h1>
+          <div class="flex items-center gap-1.5">
+            <h1
+              class="text-lg font-extrabold tracking-tight bg-gradient-to-r from-primary-600 to-theme-secondary dark:from-primary-550 dark:to-theme-secondary bg-clip-text text-transparent"
+            >
+              {{ t('app_title') }}
+            </h1>
+            <span
+              v-if="appVersion"
+              class="text-[9px] font-extrabold bg-primary-100 text-primary-700 dark:bg-primary-950/40 dark:text-primary-400 px-1.5 py-0.5 rounded-md align-middle border border-primary-200/50 dark:border-primary-900/50"
+            >
+              {{ appVersion }}
+            </span>
+          </div>
         </div>
 
         <!-- Teleport Target for Actions & Settings Gear -->
