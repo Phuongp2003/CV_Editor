@@ -180,7 +180,7 @@ function toggleSection(secKey: SectionKey) {
         <!-- Edit Personal Info Pencil Button -->
         <button
           @click="emit('edit-section', 'personal')"
-          class="p-1.5 rounded-lg text-theme-text-muted hover:text-theme-secondary hover:bg-theme-secondary-bg transition cursor-pointer"
+          class="p-1.5 rounded-lg text-theme-text-muted hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-500/10 transition cursor-pointer"
           :title="t('edit_personal_info')"
         >
           <svg
@@ -223,7 +223,7 @@ function toggleSection(secKey: SectionKey) {
           <!-- Drag Handle -->
           <div
             @mousedown="startDrag($event, index, secKey)"
-            class="cursor-grab text-theme-text-muted hover:text-theme-secondary p-1 flex items-center select-none bg-theme-element rounded"
+            class="cursor-grab text-theme-text-muted hover:text-primary-600 dark:hover:text-primary-400 p-1 flex items-center select-none bg-theme-element rounded"
             :title="t('drag_to_reorder_help')"
           >
             <svg
@@ -255,7 +255,7 @@ function toggleSection(secKey: SectionKey) {
           <button
             v-if="isSectionEnabled(secKey)"
             @click="emit('edit-section', secKey)"
-            class="p-1.5 rounded-lg text-theme-text-muted hover:text-theme-secondary hover:bg-theme-secondary-bg transition cursor-pointer"
+            class="p-1.5 rounded-lg text-theme-text-muted hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-500/10 transition cursor-pointer"
             :title="t('edit_section_title').replace('{section}', getSectionLabel(secKey))"
           >
             <svg
@@ -324,7 +324,7 @@ function toggleSection(secKey: SectionKey) {
     <Teleport defer to="body">
       <div
         v-if="isDragging && draggedItem"
-        class="fixed pointer-events-none z-50 bg-theme-card/90 border border-theme-secondary/40 rounded-xl p-3 shadow-2xl opacity-75 backdrop-blur-sm border-dashed"
+        class="fixed pointer-events-none z-50 bg-theme-card/90 border border-primary-500/40 rounded-xl p-3 shadow-2xl opacity-75 backdrop-blur-sm border-dashed"
         :style="{
           left: `${mousePos.x - dragOffset.x}px`,
           top: `${mousePos.y - dragOffset.y}px`,
@@ -334,7 +334,7 @@ function toggleSection(secKey: SectionKey) {
         <div class="text-[10px] font-bold text-theme-text-muted uppercase tracking-wider mb-1">
           {{ t('moving_section') }}
         </div>
-        <div class="text-xs font-extrabold text-theme-secondary capitalize">
+        <div class="text-xs font-extrabold text-primary-600 dark:text-primary-400 capitalize">
           {{ getSectionLabel(draggedItem) }}
         </div>
       </div>

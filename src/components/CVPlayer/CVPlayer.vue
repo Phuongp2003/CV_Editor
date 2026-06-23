@@ -6,6 +6,10 @@ import { useCVStore } from '@/stores/cv'
 import { storeToRefs } from 'pinia'
 import DownloadMenu from '@/components/DownloadMenu.vue'
 import { useI18n } from '@/composables/useI18n'
+import { cleanUrl, parseRichText } from '@/utils/richText'
+import type { TextSegment } from '@/utils/richText'
+import { CV_LANGUAGE_SECTION_LABELS } from '@/types/cv'
+import type { SectionKey } from '@/types/cv'
 
 const props = defineProps<{
   data: any
@@ -23,61 +27,14 @@ const {
   sectionsOrder,
   disabledSections,
   bulletChars,
+  experienceHeaderStyle,
 } = storeToRefs(store)
 const pdfBlobUrl = ref<string | null>(null)
 const { t } = useI18n()
 
-// Language Labels for Sections
-const LANGUAGE_LABELS = {
-  English: {
-    summary: 'Summary',
-    objective: 'Objective',
-    skills: 'Skills',
-    experience: 'Experience',
-    projects: 'Projects',
-    education: 'Education',
-    certificates: 'Certificates',
-  },
-  Vietnamese: {
-    summary: 'Tóm tắt',
-    objective: 'Mục tiêu',
-    skills: 'Kỹ năng',
-    experience: 'Kinh nghiệm',
-    projects: 'Dự án',
-    education: 'Học vấn',
-    certificates: 'Chứng chỉ',
-  },
-  Japanese: {
-    summary: '要約',
-    objective: '志望動機',
-    skills: 'スキル',
-    experience: '職歴',
-    projects: 'プロジェクト',
-    education: '学歴',
-    certificates: '資格',
-  },
-  Korean: {
-    summary: '요약',
-    objective: '목표',
-    skills: '스킬',
-    experience: '경력',
-    projects: '프로젝트',
-    education: '학력',
-    certificates: '자격증',
-  },
-  Chinese: {
-    summary: '个人总结',
-    objective: '求职意向',
-    skills: '专业技能',
-    experience: '工作经历',
-    projects: '项目经验',
-    education: '教育背景',
-    certificates: '荣誉证书',
-  },
-}
-
-function resolveSectionLabels(lang: string) {
-  return LANGUAGE_LABELS[lang as keyof typeof LANGUAGE_LABELS] || LANGUAGE_LABELS.English
+function resolveSectionLabels(lang: string): Record<SectionKey, string> {
+  const labels = CV_LANGUAGE_SECTION_LABELS[lang]
+  return (labels || CV_LANGUAGE_SECTION_LABELS.English) as Record<SectionKey, string>
 }
 
 const sectionLabels = computed(() => {
@@ -143,84 +100,12 @@ const isLink = (val: string) => {
   )
 }
 
-const cleanUrl = (url: string) => {
-  if (!url) return ''
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    return 'https://' + url
-  }
-  return url
-}
-
 // Rich Text Parser Structures
-interface TextSegment {
-  text: string
-  bold: boolean
-  italic: boolean
-  underline: boolean
-}
-
 interface RichWord {
   text: string
   bold: boolean
   italic: boolean
   underline: boolean
-}
-
-// Regex scanning for ***bolditalic***, **bold**, *italic* / _italic_
-function parseRichText(text: string): TextSegment[] {
-  const segments: TextSegment[] = []
-  let currentText = ''
-  let isBold = false
-  let isItalic = false
-  let isUnderline = false
-
-  let i = 0
-  while (i < text.length) {
-    if (text.startsWith('***', i)) {
-      if (currentText) {
-        segments.push({ text: currentText, bold: isBold, italic: isItalic, underline: isUnderline })
-        currentText = ''
-      }
-      isBold = !isBold
-      isItalic = !isItalic
-      i += 3
-    } else if (text.startsWith('**', i)) {
-      if (currentText) {
-        segments.push({ text: currentText, bold: isBold, italic: isItalic, underline: isUnderline })
-        currentText = ''
-      }
-      isBold = !isBold
-      i += 2
-    } else if (text.startsWith('<u>', i)) {
-      if (currentText) {
-        segments.push({ text: currentText, bold: isBold, italic: isItalic, underline: isUnderline })
-        currentText = ''
-      }
-      isUnderline = true
-      i += 3
-    } else if (text.startsWith('</u>', i)) {
-      if (currentText) {
-        segments.push({ text: currentText, bold: isBold, italic: isItalic, underline: isUnderline })
-        currentText = ''
-      }
-      isUnderline = false
-      i += 4
-    } else if (text.startsWith('*', i) || text.startsWith('_', i)) {
-      if (currentText) {
-        segments.push({ text: currentText, bold: isBold, italic: isItalic, underline: isUnderline })
-        currentText = ''
-      }
-      isItalic = !isItalic
-      i += 1
-    } else {
-      currentText += text[i]
-      i += 1
-    }
-  }
-  if (currentText) {
-    segments.push({ text: currentText, bold: isBold, italic: isItalic, underline: isUnderline })
-  }
-  return segments
 }
 
 function segmentToWords(segments: TextSegment[]): RichWord[] {
@@ -350,6 +235,13 @@ function generatePDF(shouldDownload = false) {
     }
   }
   let useEmbeddedFonts = selectedFont.value !== 'arial' && selectedFont.value !== 'custom'
+
+  // Safety fallback if fonts are not loaded (e.g. in Vitest test environment)
+  const hasFont = (window as any).font || (window as any).RegJap || (window as any).KrRegular || (window as any).RegCN
+  if (useEmbeddedFonts && !hasFont) {
+    useEmbeddedFonts = false
+    fontFamily = 'helvetica'
+  }
 
   if (useEmbeddedFonts) {
     const lang = language.value
@@ -895,43 +787,75 @@ function generatePDF(shouldDownload = false) {
         const bulletParts: any[] = Array.isArray(entry.bullets) ? entry.bullets : []
         const hasHeader = bulletParts.some((p) => p.type === 'header' && p.text && p.text.trim())
 
-        doc.setFontSize(bodySize)
-        setFont('bold')
-        doc.setCharSpace(bodySize * 0.05)
-        const companyTrimmed = company.trim().toUpperCase()
-        if (companyTrimmed && location) {
-          doc.text(companyTrimmed, marginLeft, y)
-          const companyWidth = doc.getTextWidth(companyTrimmed)
-          setFont('italic')
-          doc.setCharSpace(bodySize * 0.015)
-          doc.text(`, ${location.trim()}`, marginLeft + companyWidth, y)
-          setFont('normal')
-        } else if (companyTrimmed) {
-          doc.text(companyTrimmed, marginLeft, y)
-        } else if (location) {
-          setFont('italic')
-          doc.setCharSpace(bodySize * 0.015)
-          doc.text(location.trim(), marginLeft, y)
-          setFont('normal')
-        }
+        if (experienceHeaderStyle.value === 'role-company') {
+          doc.setFontSize(bodySize)
+          setFont('bold')
+          doc.setCharSpace(bodySize * 0.05)
 
-        setFont('normal')
-        doc.setTextColor('#333333')
-        doc.setCharSpace(bodySize * 0.015)
-        doc.text(dates, marginRight, y, { align: 'right' })
-        doc.setTextColor('#000000')
+          const cleanPos = position.trim()
+          const cleanCompany = company.trim()
 
-        if (companyTrimmed || location) {
+          if (cleanPos && cleanCompany) {
+            doc.text(cleanPos, marginLeft, y)
+            const posWidth = doc.getTextWidth(cleanPos)
+            setFont('normal')
+            doc.setCharSpace(bodySize * 0.015)
+            doc.text(`, ${cleanCompany}`, marginLeft + posWidth, y)
+          } else if (cleanPos) {
+            doc.text(cleanPos, marginLeft, y)
+          } else if (cleanCompany) {
+            setFont('normal')
+            doc.setCharSpace(bodySize * 0.015)
+            doc.text(cleanCompany, marginLeft, y)
+          }
+
+          setFont('normal')
+          doc.setTextColor('#333333')
+          doc.setCharSpace(bodySize * 0.015)
+          doc.text(dates, marginRight, y, { align: 'right' })
+          doc.setTextColor('#000000')
+
           y += lineHeight
           checkAndAddPage()
-        }
+        } else {
+          doc.setFontSize(bodySize)
+          setFont('bold')
+          doc.setCharSpace(bodySize * 0.05)
+          const companyTrimmed = company.trim().toUpperCase()
+          if (companyTrimmed && location) {
+            doc.text(companyTrimmed, marginLeft, y)
+            const companyWidth = doc.getTextWidth(companyTrimmed)
+            setFont('italic')
+            doc.setCharSpace(bodySize * 0.015)
+            doc.text(`, ${location.trim()}`, marginLeft + companyWidth, y)
+            setFont('normal')
+          } else if (companyTrimmed) {
+            doc.text(companyTrimmed, marginLeft, y)
+          } else if (location) {
+            setFont('italic')
+            doc.setCharSpace(bodySize * 0.015)
+            doc.text(location.trim(), marginLeft, y)
+            setFont('normal')
+          }
 
-        // Position line
-        const posStr = position ? `**${position.trim()}**` : ''
-        drawRichText(posStr, marginLeft)
-        y += lineHeight
-        checkAndAddPage()
-        setFont('normal')
+          setFont('normal')
+          doc.setTextColor('#333333')
+          doc.setCharSpace(bodySize * 0.015)
+          doc.text(dates, marginRight, y, { align: 'right' })
+          doc.setTextColor('#000000')
+
+          if (companyTrimmed || location) {
+            y += lineHeight
+            checkAndAddPage()
+          }
+
+          // Position line
+          const posStr = position ? `**${position.trim()}**` : ''
+          drawRichText(posStr, marginLeft)
+          y += lineHeight
+          checkAndAddPage()
+          setFont('normal')
+        }
 
         // Render bullet parts in order
         bulletParts.forEach((part, bIdx) => {
@@ -1257,6 +1181,7 @@ watch(
     sectionsOrder,
     disabledSections,
     bulletChars,
+    experienceHeaderStyle,
   ],
   () => {
     debouncedGeneratePDF()

@@ -57,11 +57,16 @@ npx playwright install
 npm run build
 
 # Runs the end-to-end tests
-npm run test:e2e
-# Runs the tests only on Chromium
 npm run test:e2e -- --project=chromium
 # Runs the tests of a specific file
 npm run test:e2e -- tests/example.spec.ts
 # Runs the tests in debug mode
 npm run test:e2e -- --debug
 ```
+
+## Technical Documentation
+
+Additional technical documentation detailing structural decisions and feature design is available under the `docs/` directory:
+
+- **Architecture Decisions**: Refer to [ADR 0001: Integration of Cover Letter Workspace](docs/adr/0001-cover-letter-workspace.md) for context on workspace decisions.
+- **System Design**: Refer to [Cover Letter Workspace Architecture](docs/architecture/cover-letter.md) for details regarding data flow and rendering pipelines.

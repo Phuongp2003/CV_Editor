@@ -11,7 +11,8 @@ import {
   WidthType,
   ExternalHyperlink,
 } from 'docx'
-import type { CVData, BulletPart } from '@/types/cv'
+import type { CVData, CoverLetterData } from '@/types/cv'
+import { cleanUrl, parseRichText } from '@/utils/richText'
 
 const DEFAULT_LABELS = {
   summary: 'Summary',
@@ -23,95 +24,48 @@ const DEFAULT_LABELS = {
   certificates: 'Certificates',
 }
 
+/**
+ * Options for configuring Microsoft Word docx generation.
+ *
+ * @public
+ */
 interface ExportDocxOptions {
+  /** The core CV resume data object. */
   cv: CVData
+  /** Section heading overrides. */
   labels?: Record<string, string>
+  /** Custom order to render the sections. */
   sectionsOrder: string[]
+  /** List of disabled/hidden sections. */
   disabledSections: string[]
+  /** Base font selection ('notosans' | 'arial' | 'custom'). */
   selectedFont: string
+  /** Custom system font family name when using 'custom'. */
   customFontName?: string
+  /** Bullet list bullet chars overrides. */
   bulletChars?: { l1: string; l2: string; l3: string }
+  /** Experience section header style selection ('classic' | 'role-company'). */
+  experienceHeaderStyle?: 'classic' | 'role-company'
+  /** Typography sizing overrides. */
   typography: {
+    /** Font size for normal body text in points. */
     body: number
+    /** Font size for headers in points. */
     title: number
+    /** Font size for contact info details. */
     contactInfo: number
   }
 }
 
-interface TextSegment {
-  text: string
-  bold: boolean
-  italic: boolean
-  underline: boolean
-}
-
-// Helper to clean urls
-function cleanUrl(url: string) {
-  if (!url) return ''
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    return 'https://' + url
-  }
-  return url
-}
-
-// Regex scanning for ***bolditalic***, **bold**, *italic* / _italic_
-function parseRichText(text: string): TextSegment[] {
-  const segments: TextSegment[] = []
-  let currentText = ''
-  let isBold = false
-  let isItalic = false
-  let isUnderline = false
-
-  let i = 0
-  while (i < text.length) {
-    if (text.startsWith('***', i)) {
-      if (currentText) {
-        segments.push({ text: currentText, bold: isBold, italic: isItalic, underline: isUnderline })
-        currentText = ''
-      }
-      isBold = !isBold
-      isItalic = !isItalic
-      i += 3
-    } else if (text.startsWith('**', i)) {
-      if (currentText) {
-        segments.push({ text: currentText, bold: isBold, italic: isItalic, underline: isUnderline })
-        currentText = ''
-      }
-      isBold = !isBold
-      i += 2
-    } else if (text.startsWith('<u>', i)) {
-      if (currentText) {
-        segments.push({ text: currentText, bold: isBold, italic: isItalic, underline: isUnderline })
-        currentText = ''
-      }
-      isUnderline = true
-      i += 3
-    } else if (text.startsWith('</u>', i)) {
-      if (currentText) {
-        segments.push({ text: currentText, bold: isBold, italic: isItalic, underline: isUnderline })
-        currentText = ''
-      }
-      isUnderline = false
-      i += 4
-    } else if (text.startsWith('*', i) || text.startsWith('_', i)) {
-      if (currentText) {
-        segments.push({ text: currentText, bold: isBold, italic: isItalic, underline: isUnderline })
-        currentText = ''
-      }
-      isItalic = !isItalic
-      i += 1
-    } else {
-      currentText += text[i]
-      i += 1
-    }
-  }
-  if (currentText) {
-    segments.push({ text: currentText, bold: isBold, italic: isItalic, underline: isUnderline })
-  }
-  return segments
-}
-
-// Helper to create TextRuns with bold/italic/underline parsing
+/**
+ * Parses markdown inline styles in a string and generates corresponding Word TextRuns.
+ *
+ * @param text - The raw string with markdown symbols.
+ * @param fontName - Font family name.
+ * @param size - Half-points size.
+ * @param options - Additional styling controls.
+ * @returns Array of docx {@link TextRun} components.
+ */
 function createRichTextRuns(
   text: string,
   fontName: string,
@@ -132,7 +86,13 @@ function createRichTextRuns(
   })
 }
 
-// Helper to create borderless table rows for two-column alignment (Title on left, Dates/Links on right)
+/**
+ * Generates a borderless table layout to support two-column formatting.
+ * Left aligned block takes 70% width, right aligned block takes 30% width.
+ *
+ * @param params - Left and right paragraphs to arrange.
+ * @returns A docx {@link Table} block.
+ */
 function createTwoColumnHeader({
   leftChildren,
   rightChildren,
@@ -172,6 +132,17 @@ function createTwoColumnHeader({
   })
 }
 
+/**
+ * Generates a Microsoft Word (.docx) document from CV data.
+ *
+ * @remarks
+ * Replicates the structure, margins, font selections, and rich text styling of the PDF export.
+ * Employs borderless 2-column tables to align position roles on the left and dates on the right.
+ *
+ * @param options - Core export options including candidate details and layout configs.
+ * @returns A promise resolving to the exported Word Document Blob.
+ * @throws {@link Error} If DOCX generation or packing fails.
+ */
 export async function exportDocx({
   cv,
   labels = {},
@@ -181,6 +152,7 @@ export async function exportDocx({
   customFontName,
   bulletChars = { l1: '•', l2: '◦', l3: '▪' },
   typography,
+  experienceHeaderStyle = 'classic',
 }: ExportDocxOptions): Promise<Blob> {
   const resolvedLabels = { ...DEFAULT_LABELS, ...labels }
   const bodySize = typography.body * 2
@@ -429,70 +401,127 @@ export async function exportDocx({
             children.push(new Paragraph({ spacing: { before: 120 } }))
           }
 
-          // Company Name & Location on left, Dates on right (2-column table)
-          const leftRuns = []
-          if (companyStr) {
-            leftRuns.push(
-              new TextRun({
-                text: companyStr.toUpperCase(),
-                bold: true,
-                font: fontName,
-                size: bodySize,
-              }),
-            )
-          }
-          if (locStr) {
-            if (companyStr) {
-              leftRuns.push(new TextRun({ text: ', ', font: fontName, size: bodySize }))
+          if (experienceHeaderStyle === 'role-company') {
+            const leftRuns = []
+            if (posStr) {
+              leftRuns.push(
+                new TextRun({
+                  text: posStr,
+                  bold: true,
+                  font: fontName,
+                  size: bodySize,
+                }),
+              )
             }
-            leftRuns.push(
-              new TextRun({
-                text: locStr,
-                italics: true,
-                font: fontName,
-                size: bodySize,
-              }),
-            )
-          }
-
-          const rightRuns = []
-          if (datesStr) {
-            rightRuns.push(
-              new TextRun({
-                text: datesStr,
-                font: fontName,
-                size: bodySize,
-                color: '333333',
-              }),
-            )
-          }
-
-          children.push(
-            createTwoColumnHeader({
-              leftChildren: [
-                new Paragraph({
-                  spacing: { after: 40 },
-                  children: leftRuns,
+            if (companyStr) {
+              if (posStr) {
+                leftRuns.push(new TextRun({ text: ', ', font: fontName, size: bodySize }))
+              }
+              leftRuns.push(
+                new TextRun({
+                  text: companyStr,
+                  font: fontName,
+                  size: bodySize,
                 }),
-              ],
-              rightChildren: [
-                new Paragraph({
-                  alignment: AlignmentType.RIGHT,
-                  spacing: { after: 40 },
-                  children: rightRuns,
-                }),
-              ],
-            }),
-          )
+              )
+            }
 
-          // Position line below header
-          if (posStr) {
+            const rightRuns = []
+            if (datesStr) {
+              rightRuns.push(
+                new TextRun({
+                  text: datesStr,
+                  font: fontName,
+                  size: bodySize,
+                  color: '333333',
+                }),
+              )
+            }
+
             children.push(
-              new Paragraph({
-                spacing: { after: 80 },
-                children: createRichTextRuns(posStr, fontName, bodySize, { defaultBold: true }),
+              createTwoColumnHeader({
+                leftChildren: [
+                  new Paragraph({
+                    spacing: { after: 40 },
+                    children: leftRuns,
+                  }),
+                ],
+                rightChildren: [
+                  new Paragraph({
+                    alignment: AlignmentType.RIGHT,
+                    spacing: { after: 40 },
+                    children: rightRuns,
+                  }),
+                ],
               }),
             )
+          } else {
+            // Classic style
+            // Company Name & Location on left, Dates on right (2-column table)
+            const leftRuns = []
+            if (companyStr) {
+              leftRuns.push(
+                new TextRun({
+                  text: companyStr.toUpperCase(),
+                  bold: true,
+                  font: fontName,
+                  size: bodySize,
+                }),
+              )
+            }
+            if (locStr) {
+              if (companyStr) {
+                leftRuns.push(new TextRun({ text: ', ', font: fontName, size: bodySize }))
+              }
+              leftRuns.push(
+                new TextRun({
+                  text: locStr,
+                  italics: true,
+                  font: fontName,
+                  size: bodySize,
+                }),
+              )
+            }
+
+            const rightRuns = []
+            if (datesStr) {
+              rightRuns.push(
+                new TextRun({
+                  text: datesStr,
+                  font: fontName,
+                  size: bodySize,
+                  color: '333333',
+                }),
+              )
+            }
+
+            children.push(
+              createTwoColumnHeader({
+                leftChildren: [
+                  new Paragraph({
+                    spacing: { after: 40 },
+                    children: leftRuns,
+                  }),
+                ],
+                rightChildren: [
+                  new Paragraph({
+                    alignment: AlignmentType.RIGHT,
+                    spacing: { after: 40 },
+                    children: rightRuns,
+                  }),
+                ],
+              }),
+            )
+
+            // Position line below header
+            if (posStr) {
+              children.push(
+                new Paragraph({
+                  spacing: { after: 80 },
+                  children: createRichTextRuns(posStr, fontName, bodySize, { defaultBold: true }),
+                }),
+              )
+            }
           }
 
           // Bullets
@@ -854,3 +883,219 @@ export async function exportDocx({
 
   return Packer.toBlob(doc)
 }
+
+/**
+ * Options for configuring Microsoft Word docx generation for Cover Letters.
+ *
+ * @public
+ */
+export interface ExportCoverLetterDocxOptions {
+  /** The Cover Letter data object. */
+  coverLetter: CoverLetterData
+  /** Base font selection ('notosans' | 'arial' | 'custom'). */
+  selectedFont: string
+  /** Custom system font family name when using 'custom'. */
+  customFontName?: string
+  /** Typography sizing multiplier. */
+  sizeMultiplier: number
+}
+
+/**
+ * Generates a Microsoft Word (.docx) document from Cover Letter data.
+ *
+ * @remarks
+ * Replicates the structure, margins, font selections, and rich text styling of the Cover Letter PDF.
+ * Uses standard 1-inch margins and simple styling for a Harvard-style cover letter.
+ *
+ * @param options - Core export options including cover letter details and font configs.
+ * @returns A promise resolving to the exported Word Document Blob.
+ * @throws {@link Error} If DOCX generation or packing fails.
+ * @public
+ */
+export async function exportCoverLetterDocx({
+  coverLetter,
+  selectedFont,
+  customFontName,
+  sizeMultiplier,
+}: ExportCoverLetterDocxOptions): Promise<Blob> {
+  const safeMultiplier = Math.min(1.6, Math.max(0.8, sizeMultiplier))
+  const bodyPt = Math.max(10, Math.round(10 * safeMultiplier))
+  const contactInfoPt = Math.max(9, Math.round(bodyPt * 0.9))
+  const titlePt = Math.round(14 * safeMultiplier)
+
+  const bodySize = bodyPt * 2
+  const contactInfoSize = contactInfoPt * 2
+  const titleHeaderSize = (titlePt + 2) * 2
+
+  // Map font name
+  let fontName = 'Noto Sans'
+  if (selectedFont === 'arial') {
+    fontName = 'Arial'
+  } else if (selectedFont === 'custom' && customFontName) {
+    fontName = customFontName.trim()
+  }
+
+  const children: any[] = []
+
+  // 1. Sender Name Header
+  if (coverLetter.header.senderName?.trim()) {
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 80 },
+        children: [
+          new TextRun({
+            text: coverLetter.header.senderName.trim().toUpperCase(),
+            bold: true,
+            size: titleHeaderSize,
+            font: fontName,
+          }),
+        ],
+      }),
+    )
+  }
+
+  // 2. Personal Info line: location | email | phone
+  const contactParts = [
+    coverLetter.header.senderLocation,
+    coverLetter.header.senderEmail,
+    coverLetter.header.senderPhone,
+  ].filter((p) => p?.trim())
+  if (contactParts.length) {
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 120 },
+        border: {
+          bottom: {
+            color: '222222',
+            space: 8,
+            style: BorderStyle.SINGLE,
+            size: 8, // thin line matching PDF
+          },
+        },
+        children: [
+          new TextRun({
+            text: contactParts.join('  |  '),
+            size: contactInfoSize,
+            font: fontName,
+            color: '333333',
+          }),
+        ],
+      }),
+    )
+  }
+
+  // 3. Date
+  if (coverLetter.header.date?.trim()) {
+    children.push(
+      new Paragraph({
+        spacing: { before: 240, after: 120 },
+        children: [
+          new TextRun({
+            text: coverLetter.header.date.trim(),
+            size: bodySize,
+            font: fontName,
+          }),
+        ],
+      }),
+    )
+  }
+
+  // Recipient Block (omitted from DOCX output per user request)
+
+
+  // 5. Greeting
+  if (coverLetter.greeting?.trim()) {
+    children.push(
+      new Paragraph({
+        spacing: { before: 120, after: 160 },
+        children: [
+          new TextRun({
+            text: coverLetter.greeting.trim(),
+            size: bodySize,
+            font: fontName,
+          }),
+        ],
+      }),
+    )
+  }
+
+  // 6. Opening Paragraph
+  if (coverLetter.openingParagraph?.trim()) {
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        spacing: { before: 120, after: 160 },
+        children: createRichTextRuns(coverLetter.openingParagraph.trim(), fontName, bodySize),
+      }),
+    )
+  }
+
+  // 7. Body Paragraphs
+  if (coverLetter.bodyParagraphs && coverLetter.bodyParagraphs.length) {
+    coverLetter.bodyParagraphs.forEach((p) => {
+      if (p.trim()) {
+        children.push(
+          new Paragraph({
+            alignment: AlignmentType.JUSTIFIED,
+            spacing: { before: 120, after: 160 },
+            children: createRichTextRuns(p.trim(), fontName, bodySize),
+          }),
+        )
+      }
+    })
+  }
+
+  // 8. Closing Paragraph
+  if (coverLetter.closingParagraph?.trim()) {
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        spacing: { before: 120, after: 160 },
+        children: createRichTextRuns(coverLetter.closingParagraph.trim(), fontName, bodySize),
+      }),
+    )
+  }
+
+  // 9. Sign-off
+  if (coverLetter.signOff?.trim()) {
+    children.push(
+      new Paragraph({
+        spacing: { before: 240, after: 0 },
+        children: createRichTextRuns(coverLetter.signOff.trim(), fontName, bodySize),
+      }),
+    )
+  }
+
+  const doc = new Document({
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: fontName,
+            size: bodySize,
+          },
+        },
+      },
+    },
+    sections: [
+      {
+        properties: {
+          page: {
+            margin: {
+              top: 1440, // 1 inch
+              bottom: 1440,
+              left: 1440,
+              right: 1440,
+            },
+          },
+        },
+        children,
+      },
+    ],
+  })
+
+  return Packer.toBlob(doc)
+}
+

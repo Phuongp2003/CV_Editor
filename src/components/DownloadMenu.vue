@@ -3,7 +3,10 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useCVStore } from '@/stores/cv'
 import { useI18n } from '@/composables/useI18n'
 import { saveAs } from 'file-saver'
-import { exportDocx } from '@/utils/docxExporter'
+import { exportDocx, exportCoverLetterDocx } from '@/utils/docxExporter'
+import { cleanUrl } from '@/utils/richText'
+import { CV_LANGUAGE_SECTION_LABELS } from '@/types/cv'
+import type { SectionKey } from '@/types/cv'
 
 const store = useCVStore()
 const { t } = useI18n()
@@ -13,26 +16,6 @@ const isModalOpen = ref(false)
 const selectedFormat = ref<'pdf' | 'docx' | 'json' | 'html'>('pdf')
 const exportFileName = ref('')
 
-const LANGUAGE_LABELS = {
-  English: {
-    summary: 'Summary',
-    objective: 'Objective',
-    skills: 'Skills',
-    experience: 'Experience',
-    projects: 'Projects',
-    education: 'Education',
-    certificates: 'Certificates',
-  },
-  Vietnamese: {
-    summary: 'Tóm tắt',
-    objective: 'Mục tiêu',
-    skills: 'Kỹ năng',
-    experience: 'Kinh nghiệm',
-    projects: 'Dự án',
-    education: 'Học vấn',
-    certificates: 'Chứng chỉ',
-  },
-}
 const menuRef = ref<HTMLElement | null>(null)
 
 function toggle() {
@@ -61,7 +44,11 @@ onUnmounted(() => {
 function openDownloadModal(format: 'pdf' | 'docx' | 'json' | 'html') {
   selectedFormat.value = format
   const nameStr = store.cvData.name ? store.cvData.name.trim().replace(/\s+/g, '_') : 'resume'
-  exportFileName.value = `${nameStr}_Resume`
+  if (store.activeWorkspace === 'cover-letter') {
+    exportFileName.value = `${nameStr}_Cover_Letter`
+  } else {
+    exportFileName.value = `${nameStr}_Resume`
+  }
   isModalOpen.value = true
   close()
 }
@@ -76,9 +63,15 @@ function executeDownload() {
       store.triggerDownload()
     }
   } else if (selectedFormat.value === 'docx') {
-    executeDocxDownload(filename)
+    if (store.activeWorkspace === 'cover-letter') {
+      executeCoverLetterDocxDownload(filename)
+    } else {
+      executeDocxDownload(filename)
+    }
   } else if (selectedFormat.value === 'html') {
-    executeHtmlDownload(filename)
+    if (store.activeWorkspace === 'cv') {
+      executeHtmlDownload(filename)
+    }
   } else if (selectedFormat.value === 'json') {
     executeJsonDownload(filename)
   }
@@ -89,6 +82,7 @@ function executeDownload() {
 function executeJsonDownload(filename: string) {
   const data = {
     cv: store.cvData,
+    coverLetter: store.coverLetterData,
     language: store.language,
     sizeMultiplier: store.sizeMultiplier,
     selectedFont: store.selectedFont,
@@ -96,11 +90,27 @@ function executeJsonDownload(filename: string) {
     editorMode: store.editorMode,
     sectionsOrder: store.sectionsOrder,
     disabledSections: store.disabledSections,
+    experienceHeaderStyle: store.experienceHeaderStyle,
     bulletChars: store.bulletChars,
     customSectionLabels: store.customSectionLabels,
   }
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   saveAs(blob, `${filename}.json`)
+}
+
+// Cover Letter DOCX Export
+async function executeCoverLetterDocxDownload(filename: string) {
+  try {
+    const blob = await exportCoverLetterDocx({
+      coverLetter: store.coverLetterData,
+      selectedFont: store.selectedFont,
+      customFontName: store.customFontName,
+      sizeMultiplier: store.sizeMultiplier,
+    })
+    saveAs(blob, `${filename}.docx`)
+  } catch (err) {
+    console.error('Error generating Cover Letter DOCX:', err)
+  }
 }
 
 // Helper to check links
@@ -116,21 +126,13 @@ function isLink(val: string) {
   )
 }
 
-function cleanUrl(url: string) {
-  if (!url) return ''
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    return 'https://' + url
-  }
-  return url
-}
-
 // HTML Export
 function executeHtmlDownload(filename: string) {
   const cv = store.cvData
   const bulletChars = store.bulletChars
 
-  const defaultLabels =
-    LANGUAGE_LABELS[store.language as keyof typeof LANGUAGE_LABELS] || LANGUAGE_LABELS.English
+  const defaultLabels = (CV_LANGUAGE_SECTION_LABELS[store.language] ||
+    CV_LANGUAGE_SECTION_LABELS.English) as Record<SectionKey, string>
   const sectionLabels = {
     summary: (store.customSectionLabels.summary ?? '').trim() || defaultLabels.summary,
     objective: (store.customSectionLabels.objective ?? '').trim() || defaultLabels.objective,
@@ -495,8 +497,8 @@ function executeHtmlDownload(filename: string) {
 
 // DOCX Export
 async function executeDocxDownload(filename: string) {
-  const defaultLabels =
-    LANGUAGE_LABELS[store.language as keyof typeof LANGUAGE_LABELS] || LANGUAGE_LABELS.English
+  const defaultLabels = (CV_LANGUAGE_SECTION_LABELS[store.language] ||
+    CV_LANGUAGE_SECTION_LABELS.English) as Record<SectionKey, string>
   const sectionLabels = {
     summary: (store.customSectionLabels.summary ?? '').trim() || defaultLabels.summary,
     objective: (store.customSectionLabels.objective ?? '').trim() || defaultLabels.objective,
@@ -529,6 +531,7 @@ async function executeDocxDownload(filename: string) {
       customFontName: store.customFontName,
       bulletChars: store.bulletChars,
       typography,
+      experienceHeaderStyle: store.experienceHeaderStyle,
     })
     saveAs(blob, `${filename}.docx`)
   } catch (err) {
@@ -601,6 +604,7 @@ async function executeDocxDownload(filename: string) {
 
       <!-- Download HTML -->
       <button
+        v-if="store.activeWorkspace === 'cv'"
         @click="openDownloadModal('html')"
         class="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold hover:bg-theme-hover hover:text-theme-text transition text-left cursor-pointer"
       >

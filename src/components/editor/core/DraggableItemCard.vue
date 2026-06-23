@@ -63,7 +63,7 @@ function handleMouseEnter() {
     <div class="flex justify-between items-center border-b border-theme-border pb-2 select-none">
       <div
         @mousedown="handleMouseDown"
-        class="cursor-grab text-theme-text-muted hover:text-theme-secondary flex items-center gap-1.5"
+        class="cursor-grab text-theme-text-muted hover:text-primary-600 dark:hover:text-primary-400 flex items-center gap-1.5"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

@@ -70,7 +70,7 @@ provide('draggableListContext', {
     <Teleport defer to="body">
       <div
         v-if="isDragging && draggedItem"
-        class="fixed pointer-events-none z-50 bg-theme-card/90 border border-theme-secondary/40 rounded-xl p-3 shadow-2xl opacity-75 backdrop-blur-sm border-dashed"
+        class="fixed pointer-events-none z-50 bg-theme-card/90 border border-primary-500/40 rounded-xl p-3 shadow-2xl opacity-75 backdrop-blur-sm border-dashed"
         :style="{
           left: `${mousePos.x - dragOffset.x}px`,
           top: `${mousePos.y - dragOffset.y}px`,
@@ -82,7 +82,7 @@ provide('draggableListContext', {
         </div>
         <div
           v-if="ghostTitleKey && draggedItem[ghostTitleKey]"
-          class="text-xs font-extrabold text-theme-secondary capitalize"
+          class="text-xs font-extrabold text-primary-600 dark:text-primary-400 capitalize"
         >
           {{ draggedItem[ghostTitleKey] }}
         </div>

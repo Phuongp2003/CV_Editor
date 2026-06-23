@@ -1,90 +1,152 @@
 {
   "cv": {
-    "name": "PHAM BUI NAM PHUONG",
+    "name": "Pham Bui Nam Phuong",
     "email": "phambuinamphuong@gmail.com",
     "phone": "0942538652",
-    "location": "Tam Phu District, HCM City, Viet Nam",
+    "location": "Ho Chi Minh City, Viet Nam",
     "linkedin": "https://linkedin.com/in/phambuinamphuong",
     "linkedin_placeholder": "linkedin.com/in/phambuinamphuong",
     "github": "https://github.com/Phuongp2003",
     "github_placeholder": "github.com/Phuongp2003",
     "website": "",
     "website_placeholder": "",
-    "summary": "A dedicated Information Technology Engineer with deep expertise in full-stack development, microservices architecture, and system integration to drive scalable enterprise solutions. Proven ability to architect resilient backend systems, ensure robust data quality, and optimize application performance. Adept at bridging complex technical implementations with business objectives to deliver seamless user experiences and maintain high system reliability under heavy workloads.",
-    "objective": "",
+    "summary": "Software Engineer with over 2 years of practical experience architecting and optimizing full-stack applications using the **.NET** and **Node.js** ecosystems. Strong foundational expertise in **Object-Oriented Programming (OOP)**, **Design Patterns**, and Agile development, with a proven track record of resolving critical performance bottlenecks and automating complex workflows in high-traffic enterprise environments.",
+    "objective": "A dedicated Software Engineer aiming to leverage advanced knowledge of **C#**, **.NET Framework**, and **Object-Oriented Design** to architect scalable solutions at MiTek. Driven to collaborate within an Agile environment, refactor legacy architectures, and deliver high-performance software that directly accelerates client breakthroughs in the building solutions industry.",
     "experiences": [
       {
-        "position": "Web Development Collaborator / Key Technical Contributor",
+        "position": "Software Engineer",
         "company": "PRIMAS CO. LTD",
-        "location": "HCM City, Viet Nam",
+        "location": "Ho Chi Minh City, Viet Nam",
         "dates": "07/2025 - Present",
-        "bullets": {
-          "description": "A large-scale CRM/CMS enterprise platform requiring high availability and seamless data flow across internal departments.",
-          "items": [
-            "- Maintained and expanded core backend functionalities using **C#** and **.NET Core**, implementing **microservices** with **Node.js** to enable real-time chat and automated pipelines, reducing data synchronization delays.",
-            "- Engineered responsive user interfaces and robust **data validation** layers using **Angular**, ensuring strict data consistency and boundary control before backend processing.",
-            "- Integrated **RabbitMQ** message queues to offload heavy background operations and job workers, significantly improving the main thread's response time and overall system **scalability**.",
-            "- Standardized relational database structures and optimized complex SQL joins, ensuring stable platform performance and reliable forecasting capabilities under high-volume traffic."
-          ]
-        }
+        "bullets": [
+          {
+            "id": "p1h1",
+            "type": "header",
+            "text": "**Project: Altus Entertainment** - A large-scale CRM ecosystem managing booking and contracts for over **20,000 artists** in the US."
+          },
+          {
+            "id": "p1b1",
+            "type": "l1",
+            "text": "Architected a scalable event logging module utilizing the **State pattern** in **C# / .NET Core** and **RabbitMQ**, resolving tracking instability and ensuring **zero-data-loss** during peak operational loads."
+          },
+          {
+            "id": "p1b2",
+            "type": "l1",
+            "text": "Engineered an automated content generation system via **FastAPI** and **Node.js**, employing **Registry and Factory patterns** for robust session management, which accelerated article creation from **5 hours to under 1 hour**."
+          },
+          {
+            "id": "p1b3",
+            "type": "l1",
+            "text": "Refactored a monolithic **Angular** frontend into multiple lazy-loaded modules, systematically addressing structural bottlenecks to reduce bundle size and client-side rendering latency."
+          },
+          {
+            "id": "p1b4",
+            "type": "l1",
+            "text": "Optimized Role-Based Access Control (RBAC) data fetching via progressive permission resolution in **Nebular UI**, successfully slashing user login wait time by **90%**."
+          },
+          {
+            "id": "p1b5",
+            "type": "l1",
+            "text": "Collaborated actively within an **Agile/Scrum** environment using **Jira** and **Bitbucket**, engaging in sprint planning and retrospectives to ensure continuous delivery of software features."
+          }
+        ]
       },
       {
-        "position": "Primary Technical Contributor",
+        "position": "Junior Full-stack Developer",
         "company": "ALGORIT LAB",
-        "location": "HCM City, Viet Nam",
+        "location": "Ho Chi Minh City, Viet Nam",
         "dates": "01/2024 - 04/2025",
-        "bullets": {
-          "description": "The NEEC platform and ecosystem, including hardware-integrated monitoring systems for factory operations.",
-          "items": [
-            "- Designed and standardized RESTful web services using **Node.js** and Prisma, ensuring seamless integration across the NEEC ecosystem and third-party services.",
-            "- Developed highly responsive web-based dashboards using **Vue 3** to process and display real-time statuses from factory hardware, empowering the operations team to forecast issues and control equipment efficiency.",
-            "- Administered relational database architectures to enforce strict data integrity and structured integration across distributed modules.",
-            "- Managed local environments and automated CI/CD deployments via Plesk, effectively reducing manual deployment overhead and risk of configuration drift."
-          ]
-        }
+        "bullets": [
+          {
+            "id": "a1h1",
+            "type": "header",
+            "text": "**Project: NEEC Platform** - Core architecture migration and CMS development for an international consulting agency."
+          },
+          {
+            "id": "a1b1",
+            "type": "l1",
+            "text": "Spearheaded the architectural migration of a legacy WordPress site to a responsive **Vue 3** and **Node.js** application, overcoming scalability limitations of the old system."
+          },
+          {
+            "id": "a1b2",
+            "type": "l1",
+            "text": "Designed and deployed automated CI/CD pipelines via **GitHub Actions**, streamlining the release cycle to consistently achieve **2 to 3 stable deployments per week**."
+          },
+          {
+            "id": "a1b3",
+            "type": "l1",
+            "text": "Built a custom CMS using **Prisma ORM** and **Nuxt UI**, eliminating the client's dependency on developers by enabling independent administration of dynamic forms and content."
+          }
+        ]
       }
     ],
     "projects": [
       {
-        "projectName": "MODULAR AI AGENT SYSTEM (PERSONAL PROJECT)",
+        "projectName": "Delivery Dispatch & Optimal Routing System",
         "projectLink": "",
-        "bullets": {
-          "description": "An experimental AI system architecture utilizing agentic workflows to process complex, multi-step queries autonomously.",
-          "items": [
-            "- Designed a supervisor-worker agent model utilizing **LangChain** and **PostgreSQL Vector** databases for efficient memory management and context retrieval.",
-            "- Implemented Session-in-Disk strategies and robust asynchronous processing, enforcing strict **Cancellation Tokens** for task control to ensure system stability during extensive AI processing cycles."
-          ]
-        }
+        "bullets": [
+          {
+            "id": "pr1h1",
+            "type": "header",
+            "text": "Graduation Thesis: A complex logistics backend designed to automate priority dispatching."
+          },
+          {
+            "id": "pr1b1",
+            "type": "l1",
+            "text": "Engineered and securely deployed **4 independent microservices** via **Docker** within a tight **2-month** timeframe, utilizing **Node.js**, **MySQL**, and **Nginx**."
+          },
+          {
+            "id": "pr1b2",
+            "type": "l1",
+            "text": "Implemented map data tuning and the **Dijkstra algorithm** (via OpenStreetMap) to compute highly optimized routing paths, significantly reducing average delivery transit times."
+          }
+        ]
+      },
+      {
+        "projectName": "Flight Management Application",
+        "projectLink": "https://github.com/Phuongp2003/CTDL_N7",
+        "bullets": [
+          {
+            "id": "pr2b1",
+            "type": "l1",
+            "text": "Developed core application logic utilizing **C/C++**, rigorously applying advanced data structures including **B-Trees**, **Linked Lists**, and **Arrays** to maximize data retrieval and memory efficiency."
+          },
+          {
+            "id": "pr2b2",
+            "type": "l1",
+            "text": "Designed the graphical user interface using the **Raylib** framework to provide a seamless scheduling experience."
+          }
+        ]
       }
     ],
     "skills": [
       {
         "skill": "Languages",
-        "description": "**C#**, JavaScript, **TypeScript**, Python, HTML, CSS, **SQL**"
+        "description": "C#, C, C++, JavaScript, TypeScript, Python, HTML, CSS"
       },
       {
-        "skill": "Frameworks & Libraries",
-        "description": "**.NET Core**, **Angular**, React, **Node.js**, Prisma, Vue 3, Vite, FastAPI, LangChain"
+        "skill": "Frameworks",
+        "description": ".NET Core, Node.js, Express.js, FastAPI, Angular, React, Vue 3, Nuxt UI"
       },
       {
         "skill": "Databases & Storage",
-        "description": "**MSSQL**, **PostgreSQL**, MySQL, MongoDB, Vector Databases"
+        "description": "Microsoft SQL Server, PostgreSQL, MySQL, Prisma ORM"
       },
       {
         "skill": "Infrastructure & Tools",
-        "description": "**Docker**, **RabbitMQ**, Git, Nginx, Plesk, Jira, WSL2"
+        "description": "Git, GitHub Actions, Docker, RabbitMQ, Jira, Nginx"
       },
       {
-        "skill": "Core Knowledge",
-        "description": "**Microservices Architecture**, Agentic Workflows, SOLID principles, RESTful API Design, System Integration, IoT Development"
+        "skill": "Methodologies & Core Knowledge",
+        "description": "Object-Oriented Programming (OOP), SOLID Principles, Design Patterns (State, Factory, Registry), Agile/Scrum, CI/CD, Microservices Architecture, Refactoring, Software Development Life Cycle (SDLC)"
       }
     ],
     "educations": [
       {
-        "university": "POSTS AND TELECOMMUNICATIONS INSTITUTE OF TECHNOLOGY",
+        "university": "Posts and Telecommunications Institute of Technology (PTIT)",
         "degree": "Bachelor of Engineering in Information Technology",
         "gpa": "",
-        "graduationDate": "2021 - 2026"
+        "graduationDate": "June 2026"
       }
     ],
     "certificates": [
@@ -97,46 +159,33 @@
   },
   "coverLetter": {
     "header": {
-      "name": "PHAM BUI NAM PHUONG",
-      "email": "phambuinamphuong@gmail.com",
-      "phone": "0942538652",
-      "location": "Tam Phu District, HCM City, Viet Nam",
-      "date": "June 13, 2026",
+      "senderName": "Pham Bui Nam Phuong",
+      "senderEmail": "phambuinamphuong@gmail.com",
+      "senderPhone": "0942538652",
+      "senderLocation": "Ho Chi Minh City, Viet Nam",
+      "date": "June 23, 2026",
       "recipientName": "Hiring Manager",
-      "recipientTitle": "Engineering Recruitment Manager",
-      "companyName": "Nexus Tech Global",
-      "companyAddress": "123 Dien Bien Phu Street, Ward 15, Binh Thanh District, Ho Chi Minh City"
+      "recipientTitle": "Engineering Manager",
+      "companyName": "MiTek",
+      "companyAddress": "Ho Chi Minh City, Viet Nam"
     },
     "greeting": "Dear Hiring Manager,",
-    "openingParagraph": "I am writing to express my strong interest in the Software Engineer position at Nexus Tech Global. With a solid foundation in Information Technology and hands-on experience building scalable web solutions, I am excited about the opportunity to contribute to your engineering team's success.",
+    "openingParagraph": "I am writing to express my strong interest in the **Software Engineer** position at MiTek. With over two years of practical experience across the full software development lifecycle and a deep commitment to engineering excellence, I am eager to apply my robust expertise in **C#**, **.NET**, and **Object-Oriented Design** to help MiTek deliver continuous breakthroughs in building solutions.",
     "bodyParagraphs": [
-      "During my tenure at PRIMAS CO. LTD, I played a key role in developing and optimizing backend functionalities for a large-scale CRM/CMS enterprise platform. I successfully integrated RabbitMQ message queues to offload heavy background tasks, which significantly enhanced system responsiveness and scalability. Furthermore, my proficiency with C#, .NET Core, Node.js, and Angular enabled me to build robust, high-performance features that reduced synchronization delays and ensured strict data validation.",
-      "At ALGORIT LAB, I designed and standardized RESTful services using Node.js and Prisma, facilitating seamless integration across distributed systems. I am highly passionate about microservices architecture and clean code principles. I look forward to bringing my technical capabilities and problem-solving skills to Nexus Tech Global's upcoming fintech initiatives."
+      "In my current role at PRIMAS CO. LTD, I serve as a primary technical contributor for Altus Entertainment, a CRM ecosystem managing over <u>20,000 artists</u>. To meet strict performance and reliability demands, I applied **Object-Oriented Programming (OOP)** and the **State pattern** in **C# / .NET Core** to architect a fault-tolerant event logging module using RabbitMQ. I actively refactored monolithic frontend architectures and aggressively optimized authorization flows, slashing user login latency by **90%**. Furthermore, I utilized **Registry and Factory patterns** within a Node.js automation microservice, drastically reducing content generation time from **5 hours to under 1 hour**.",
+      "My engineering approach aligns seamlessly with MiTek’s requirement for quality assurance and continuous workflow optimization. At Algorit Lab, I designed GitHub Actions pipelines that enabled **2 to 3 stable production deployments per week**. Working in rigorous **Agile/Scrum** environments using Jira, I consistently participated in sprint planning and retrospectives to ensure quality delivery. Additionally, my strong academic and project foundation in **C/C++** and advanced data structures (such as B-Trees) equips me with a deep understanding of memory management, which I am eager to bring to your cross-functional engineering teams."
     ],
-    "closingParagraph": "I welcome the opportunity to discuss further how my technical experience and proactive problem-solving approach can help Nexus Tech Global achieve its upcoming engineering milestones. Thank you for your time and consideration.",
+    "closingParagraph": "I am deeply inspired by MiTek’s 60-year history of global innovation and its supportive, inclusive engineering environment. I am confident that my proactive problem-solving mindset and technical rigor will make an immediate and positive impact on your Software Center. I would welcome the opportunity to discuss how my background aligns with your strategic goals in an interview.",
     "signOff": "Sincerely,\n\nPham Bui Nam Phuong"
   },
   "language": "English",
-  "sizeMultiplier": 0.85,
   "selectedFont": "notosans",
   "customFontName": "",
-  "editorMode": "tabs",
-  "sectionsOrder": [
-    "summary",
-    "objective",
-    "skills",
-    "experience",
-    "projects",
-    "education",
-    "certificates"
-  ],
-  "disabledSections": [
-    "objective"
-  ],
+  "sizeMultiplier": 1.0,
   "bulletChars": {
-    "l1": "•",
-    "l2": "◦",
-    "l3": "▪"
+    "l1": "-",
+    "l2": "-",
+    "l3": "-"
   },
   "customSectionLabels": {
     "summary": "Summary",
@@ -146,5 +195,15 @@
     "projects": "Projects",
     "education": "Education",
     "certificates": "Certificates"
-  }
+  },
+  "sectionsOrder": [
+    "summary",
+    "objective",
+    "skills",
+    "experience",
+    "projects",
+    "education",
+    "certificates"
+  ],
+  "disabledSections": []
 }

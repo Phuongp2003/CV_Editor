@@ -4,6 +4,8 @@ import { useI18n } from '@/composables/useI18n'
 import { useCVStore } from '@/stores/cv'
 import CVEditor from '@/components/CVEditor.vue'
 import CVPlayer from '@/components/CVPlayer'
+import CoverLetterEditor from '@/components/editor/CoverLetterEditor.vue'
+import CoverLetterPlayer from '@/components/CVPlayer/CoverLetterPlayer.vue'
 import SettingsDrawer from '@/components/SettingsDrawer.vue'
 import ProfilePresets from '@/components/ProfilePresets.vue'
 
@@ -21,19 +23,53 @@ const { t } = useI18n()
       <header
         class="bg-theme-card border-b border-theme-border py-3.5 px-6 flex justify-between items-center shadow-sm flex-shrink-0 transition-colors duration-200"
       >
-        <!-- Logo & Title -->
-        <div class="flex items-center gap-3">
-          <div
-            class="w-8 h-8 rounded-lg bg-primary-600 dark:bg-primary-500 flex items-center justify-center font-extrabold text-white dark:text-theme-page text-lg shadow-md"
-          >
-            CV
-          </div>
-          <div class="flex items-center gap-1.5">
-            <h1
-              class="text-lg font-extrabold tracking-tight bg-gradient-to-r from-primary-600 to-theme-secondary dark:from-primary-550 dark:to-theme-secondary bg-clip-text text-transparent"
+        <!-- Logo, Title & Workspace Selector -->
+        <div class="flex items-center gap-6">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-8 h-8 rounded-lg bg-primary-600 dark:bg-primary-500 flex items-center justify-center font-extrabold text-white dark:text-theme-page text-lg shadow-md"
             >
-              {{ t('app_title') }}
-            </h1>
+              CV
+            </div>
+            <div class="flex items-center gap-1.5">
+              <h1
+                class="text-lg font-extrabold tracking-tight bg-gradient-to-r from-primary-600 to-primary-400 dark:from-primary-550 dark:to-primary-300 bg-clip-text text-transparent"
+              >
+                {{ t('app_title') }}
+              </h1>
+            </div>
+          </div>
+
+          <!-- Workspace Selector Toggle Tabs -->
+          <div class="hidden md:flex items-center gap-1 bg-theme-muted/50 border border-theme-border p-1 rounded-xl select-none">
+            <button
+              @click="store.activeWorkspace = 'cv'"
+              :class="[
+                'px-4 py-1.5 text-xs font-bold rounded-lg transition duration-200 cursor-pointer flex items-center gap-1.5',
+                store.activeWorkspace === 'cv'
+                  ? 'bg-primary-600 text-white shadow-md'
+                  : 'text-theme-text-muted hover:text-theme-text hover:bg-theme-hover/50',
+              ]"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+              </svg>
+              {{ t('cv_workspace') }}
+            </button>
+            <button
+              @click="store.activeWorkspace = 'cover-letter'"
+              :class="[
+                'px-4 py-1.5 text-xs font-bold rounded-lg transition duration-200 cursor-pointer flex items-center gap-1.5',
+                store.activeWorkspace === 'cover-letter'
+                  ? 'bg-primary-600 text-white shadow-md'
+                  : 'text-theme-text-muted hover:text-theme-text hover:bg-theme-hover/50',
+              ]"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+              </svg>
+              {{ t('cover_letter_workspace') }}
+            </button>
           </div>
         </div>
 
@@ -131,12 +167,14 @@ const { t } = useI18n()
       >
         <!-- Editor Pane -->
         <div class="flex flex-col h-full overflow-hidden">
-          <CVEditor />
+          <CVEditor v-if="store.activeWorkspace === 'cv'" />
+          <CoverLetterEditor v-else />
         </div>
 
         <!-- Preview Pane -->
         <div class="flex flex-col h-full overflow-hidden">
-          <CVPlayer :data="{}" />
+          <CVPlayer v-if="store.activeWorkspace === 'cv'" :data="{}" />
+          <CoverLetterPlayer v-else />
         </div>
       </main>
 

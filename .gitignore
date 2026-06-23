@@ -47,3 +47,6 @@ components.d.ts
 
 .env
 .vite
+
+.agents
+.codegraph

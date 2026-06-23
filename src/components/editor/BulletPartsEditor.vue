@@ -101,7 +101,7 @@ function onMouseUp() {
         <!-- Drag Handle -->
         <div
           @mousedown="startDrag($event, pIdx, part)"
-          class="cursor-grab hover:text-theme-secondary text-theme-text-muted p-1 flex items-center select-none"
+          class="cursor-grab hover:text-primary-600 dark:hover:text-primary-400 text-theme-text-muted p-1 flex items-center select-none"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -185,7 +185,7 @@ function onMouseUp() {
       <button
         type="button"
         @click="addPart('l3')"
-        class="bg-theme-muted hover:bg-theme-element border border-theme-border text-theme-secondary font-bold py-1.5 px-3 rounded-lg text-[10px] tracking-wide uppercase transition duration-150 cursor-pointer shadow-sm"
+        class="bg-theme-muted hover:bg-theme-element border border-theme-border text-indigo-600 dark:text-indigo-400 font-bold py-1.5 px-3 rounded-lg text-[10px] tracking-wide uppercase transition duration-150 cursor-pointer shadow-sm"
       >
         {{ t('btn_add_l3') }}
       </button>
@@ -202,7 +202,7 @@ function onMouseUp() {
     <Teleport defer to="body">
       <div
         v-if="isDragging && draggedItem"
-        class="fixed pointer-events-none z-50 bg-theme-card/90 border border-theme-secondary/40 rounded-xl p-3 shadow-2xl opacity-75 backdrop-blur-sm border-dashed"
+        class="fixed pointer-events-none z-50 bg-theme-card/90 border border-primary-500/40 rounded-xl p-3 shadow-2xl opacity-75 backdrop-blur-sm border-dashed"
         :style="{
           left: `${mousePos.x - dragOffset.x}px`,
           top: `${mousePos.y - dragOffset.y}px`,

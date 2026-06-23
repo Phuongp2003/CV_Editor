@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import type {
   CVData,
   BulletPart,
@@ -9,15 +9,35 @@ import type {
   SectionKey,
   Experience,
   Project,
+  CoverLetterData,
 } from '@/types/cv'
 import { DEFAULT_SECTIONS_ORDER } from '@/types/cv'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * Generates a random 7-character alphanumeric string to serve as a unique ID.
+ *
+ * @returns A randomly generated string ID.
+ */
 function generateId(): string {
   return Math.random().toString(36).substring(2, 9)
 }
 
+/**
+ * Parses raw bullet inputs (which can be a string, array, or legacy description object)
+ * into a structured array of BulletPart elements.
+ *
+ * @remarks
+ * Recognizes prefixes to resolve bullet indentation:
+ * - `#` prefix -> `header` (rendered bold in PDF/DOCX)
+ * - `-` prefix -> `l1` (Level 1 bullet)
+ * - `+` or `--` prefix -> `l2` (Level 2 bullet)
+ * - `---` prefix -> `l3` (Level 3 bullet)
+ *
+ * @param bullets - The raw representation of bullet items.
+ * @returns An array of parsed {@link BulletPart} structures.
+ */
 function parseBulletsToParts(bullets: unknown): BulletPart[] {
   if (!bullets) return []
 
@@ -109,33 +129,154 @@ const EMPTY_CV: CVData = {
   ],
 }
 
+const EMPTY_COVER_LETTER: CoverLetterData = {
+  header: {
+    senderName: '',
+    senderEmail: '',
+    senderPhone: '',
+    senderLocation: '',
+    date: '',
+    recipientName: '',
+    recipientTitle: '',
+    recipientEmail: '',
+    companyName: '',
+    companyAddress: '',
+  },
+  greeting: '',
+  openingParagraph: '',
+  bodyParagraphs: [''],
+  closingParagraph: '',
+  signOff: '',
+}
+
 // ─── Store ────────────────────────────────────────────────────────────────────
 
+const isClient = typeof window !== 'undefined' && typeof localStorage !== 'undefined'
+
+function getLocal(key: string, fallback: string): string {
+  try {
+    if (isClient) {
+      return localStorage.getItem(key) || fallback
+    }
+  } catch (e) {
+    // ignore
+  }
+  return fallback
+}
+
+function setLocal(key: string, val: string) {
+  try {
+    if (isClient) {
+      localStorage.setItem(key, val)
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+function getLocalJson<T>(key: string, fallback: T): T {
+  try {
+    if (isClient) {
+      const val = localStorage.getItem(key)
+      if (val) {
+        return JSON.parse(val) as T
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+  return fallback
+}
+
+/**
+ * State store managing all candidate CV contents, UI configuration, layout, and export settings.
+ *
+ * @public
+ */
 export const useCVStore = defineStore('cv', () => {
+  /** The currently active workspace pane ('cv' | 'cover-letter'). */
+  const activeWorkspace = ref<'cv' | 'cover-letter'>('cv')
+
+  /** Reactive reference containing all core CV input details (e.g. name, experiences). */
   const cvData = ref<CVData>({ ...EMPTY_CV })
 
-  const sizeMultiplier = ref(1.0)
-  const selectedFont = ref('notosans')
-  const customFontName = ref('')
-  const language = ref('English')
-  const uiLanguage = ref('English')
-  const editorMode = ref<EditorMode>('tabs')
+  /** Reactive reference containing all cover letter details. */
+  const coverLetterData = ref<CoverLetterData>({ ...EMPTY_COVER_LETTER })
 
-  const sectionsOrder = ref<SectionKey[]>([...DEFAULT_SECTIONS_ORDER])
-  const disabledSections = ref<SectionKey[]>(['objective'])
+  /** General scaling multiplier for fonts and margins in output PDF/DOCX files. */
+  const sizeMultiplier = ref(Number(getLocal('cv_sizeMultiplier', '1.0')))
+  /** Font family selection. Defaults to 'notosans'. */
+  const selectedFont = ref(getLocal('cv_selectedFont', 'notosans'))
+  /** Optional custom font family name to render in PDF/DOCX (system fonts). */
+  const customFontName = ref(getLocal('cv_customFontName', ''))
+  /** Target language of the CV contents. */
+  const language = ref(getLocal('cv_language', 'English'))
+  /** Target language of the Editor UI interface. */
+  const uiLanguage = ref(getLocal('cv_uiLanguage', 'English'))
+  /** Tabbed or scrollable outline form view mode selection. */
+  const editorMode = ref<EditorMode>(getLocal('cv_editorMode', 'tabs') as EditorMode)
+
+  /** Order of CV sections layout. */
+  const sectionsOrder = ref<SectionKey[]>(getLocalJson<SectionKey[]>('cv_sectionsOrder', [...DEFAULT_SECTIONS_ORDER]))
+  /** List of hidden CV sections. */
+  const disabledSections = ref<SectionKey[]>(getLocalJson<SectionKey[]>('cv_disabledSections', ['summary']))
+  /** Experience section header style selection ('classic' | 'role-company'). */
+  const experienceHeaderStyle = ref<'classic' | 'role-company'>(getLocal('cv_experienceHeaderStyle', 'classic') as 'classic' | 'role-company')
+
+  let prevHasSummary = !disabledSections.value.includes('summary')
+  let prevHasObjective = !disabledSections.value.includes('objective')
+
+  // Persist configurations to localStorage
+  watch(sizeMultiplier, (val) => setLocal('cv_sizeMultiplier', String(val)))
+  watch(selectedFont, (val) => setLocal('cv_selectedFont', val))
+  watch(customFontName, (val) => setLocal('cv_customFontName', val))
+  watch(language, (val) => setLocal('cv_language', val))
+  watch(uiLanguage, (val) => setLocal('cv_uiLanguage', val))
+  watch(editorMode, (val) => setLocal('cv_editorMode', val))
+  watch(experienceHeaderStyle, (val) => setLocal('cv_experienceHeaderStyle', val))
+  watch(sectionsOrder, (val) => setLocal('cv_sectionsOrder', JSON.stringify(val)), { deep: true })
+
+  watch(
+    disabledSections,
+    (newVal) => {
+      const hasSummary = !newVal.includes('summary')
+      const hasObjective = !newVal.includes('objective')
+      if (hasSummary && hasObjective) {
+        if (!prevHasSummary && hasSummary) {
+          newVal.push('objective')
+        } else {
+          newVal.push('summary')
+        }
+      }
+      prevHasSummary = !newVal.includes('summary')
+      prevHasObjective = !newVal.includes('objective')
+      setLocal('cv_disabledSections', JSON.stringify(newVal))
+    },
+    { deep: true, immediate: true }
+  )
+
 
   // Layout editing & view states
+  /** Current workspace display tab ('content' or 'layout'). */
   const editViewMode = ref<'content' | 'layout'>('layout')
+  /** The currently active form section editing tab key. */
   const activeSectionTab = ref<string>('personal')
+  /** Whether the section order drawer is open in UI. */
   const isLayoutDrawerOpen = ref(false)
+  /** Whether the formatting settings drawer is open in UI. */
   const isStyleDrawerOpen = ref(false)
+  /** Temporary list holding proposed layout order during editing. */
   const draftSectionsOrder = ref<SectionKey[]>([])
+  /** Temporary list holding proposed section visibilities during editing. */
   const draftDisabledSections = ref<SectionKey[]>([])
+  /** Set of item IDs mapped to boolean collapsing status in form cards. */
   const collapsedItems = ref<Record<string, boolean>>({})
 
-  const bulletChars = ref<BulletChars>({ l1: '•', l2: '◦', l3: '▪' })
+  /** Set of bullet character overrides for l1, l2, and l3 bullet points. */
+  const bulletChars = ref<BulletChars>(getLocalJson<BulletChars>('cv_bulletChars', { l1: '•', l2: '◦', l3: '▪' }))
 
-  const customSectionLabels = ref<Record<string, string>>({
+  /** Dictionary of custom override section headers. */
+  const customSectionLabels = ref<Record<string, string>>(getLocalJson<Record<string, string>>('cv_customSectionLabels', {
     summary: '',
     objective: '',
     skills: '',
@@ -143,10 +284,22 @@ export const useCVStore = defineStore('cv', () => {
     projects: '',
     education: '',
     certificates: '',
-  })
+  }))
+
+  watch(bulletChars, (val) => setLocal('cv_bulletChars', JSON.stringify(val)), { deep: true })
+  watch(customSectionLabels, (val) => setLocal('cv_customSectionLabels', JSON.stringify(val)), { deep: true })
 
   // ─── Actions ────────────────────────────────────────────────────────────────
 
+  /**
+   * Loads and normalizes a CV JSON dataset into the active store.
+   *
+   * @remarks
+   * Recursively parses raw bullet structures into active {@link BulletPart} objects,
+   * normalizes missing schema values, and sets UI settings (language, size multipliers).
+   *
+   * @param data - Raw parsed JSON data from file or AI output.
+   */
   function loadCv(data: Record<string, unknown>) {
     if (!data) return
     const source = (data.cv ?? data) as Record<string, unknown>
@@ -203,6 +356,11 @@ export const useCVStore = defineStore('cv', () => {
     if (data.editorMode && (data.editorMode === 'tabs' || data.editorMode === 'outline')) {
       editorMode.value = data.editorMode as EditorMode
     }
+    if (data.experienceHeaderStyle && (data.experienceHeaderStyle === 'classic' || data.experienceHeaderStyle === 'role-company')) {
+      experienceHeaderStyle.value = data.experienceHeaderStyle as 'classic' | 'role-company'
+    } else {
+      experienceHeaderStyle.value = 'classic'
+    }
 
     if (Array.isArray(data.sectionsOrder)) {
       const order = [...data.sectionsOrder] as SectionKey[]
@@ -217,9 +375,13 @@ export const useCVStore = defineStore('cv', () => {
     }
 
     if (Array.isArray(data.disabledSections)) {
-      disabledSections.value = [...data.disabledSections] as SectionKey[]
+      const ds = [...data.disabledSections] as SectionKey[]
+      if (!ds.includes('summary') && !ds.includes('objective')) {
+        ds.push('summary')
+      }
+      disabledSections.value = ds
     } else {
-      disabledSections.value = ['objective']
+      disabledSections.value = ['summary']
     }
 
     if (data.bulletChars && typeof data.bulletChars === 'object') {
@@ -255,31 +417,90 @@ export const useCVStore = defineStore('cv', () => {
         certificates: '',
       }
     }
+
+    const clSource = (data.coverLetter ?? {}) as Record<string, any>
+    const clHeader = (clSource.header ?? {}) as Record<string, any>
+    coverLetterData.value = {
+      header: {
+        senderName: clHeader.senderName || cvData.value.name || clHeader.name || '',
+        senderEmail: clHeader.senderEmail || cvData.value.email || clHeader.email || '',
+        senderPhone: clHeader.senderPhone || cvData.value.phone || clHeader.phone || '',
+        senderLocation: clHeader.senderLocation || cvData.value.location || clHeader.location || '',
+        date: clHeader.date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        recipientName: clHeader.recipientName || '',
+        recipientTitle: clHeader.recipientTitle || '',
+        recipientEmail: clHeader.recipientEmail || '',
+        companyName: clHeader.companyName || '',
+        companyAddress: clHeader.companyAddress || '',
+      },
+      greeting: clSource.greeting || '',
+      openingParagraph: clSource.openingParagraph || '',
+      bodyParagraphs: Array.isArray(clSource.bodyParagraphs)
+        ? [...clSource.bodyParagraphs]
+        : clSource.bodyParagraphs && typeof clSource.bodyParagraphs === 'string'
+        ? [clSource.bodyParagraphs]
+        : [''],
+      closingParagraph: clSource.closingParagraph || '',
+      signOff: clSource.signOff || '',
+    }
   }
 
+  /**
+   * Overrides the display heading text for a given CV section.
+   *
+   * @param key - The {@link SectionKey} identifier.
+   * @param value - The new display string value.
+   */
   function updateSectionLabel(key: string, value: string) {
     customSectionLabels.value[key] = value
   }
 
+  /**
+   * Toggles the visibility/active status of a CV section.
+   *
+   * @param secKey - The {@link SectionKey} to toggle.
+   */
   function toggleSection(secKey: SectionKey) {
     const idx = disabledSections.value.indexOf(secKey)
     if (idx > -1) {
       disabledSections.value.splice(idx, 1)
+      if (secKey === 'summary') {
+        if (!disabledSections.value.includes('objective')) {
+          disabledSections.value.push('objective')
+        }
+      } else if (secKey === 'objective') {
+        if (!disabledSections.value.includes('summary')) {
+          disabledSections.value.push('summary')
+        }
+      }
     } else {
       disabledSections.value.push(secKey)
     }
   }
 
+  /**
+   * Checks whether a specific CV section is active/enabled for rendering.
+   *
+   * @param secKey - The section key to check.
+   * @returns True if the section is enabled, false if disabled.
+   */
   function isSectionEnabled(secKey: SectionKey): boolean {
     return !disabledSections.value.includes(secKey)
   }
 
   const downloadTrigger = ref(0)
   const pdfBlob = ref<Blob | null>(null)
+
+  /**
+   * Increments the reactive download trigger count to notify the PDF engine.
+   */
   function triggerDownload() {
     downloadTrigger.value++
   }
 
+  /**
+   * Prepares draft layout parameters to begin drag-and-drop structural updates.
+   */
   function startLayoutEditing() {
     draftSectionsOrder.value = [...sectionsOrder.value]
     draftDisabledSections.value = [...disabledSections.value]
@@ -287,6 +508,9 @@ export const useCVStore = defineStore('cv', () => {
     isLayoutDrawerOpen.value = true
   }
 
+  /**
+   * Persists changes made during layout drag-and-drop mode.
+   */
   function commitLayoutChanges() {
     sectionsOrder.value = [...draftSectionsOrder.value]
     disabledSections.value = [...draftDisabledSections.value]
@@ -294,21 +518,37 @@ export const useCVStore = defineStore('cv', () => {
     isLayoutDrawerOpen.value = false
   }
 
+  /**
+   * Discards any temporary layout adjustments.
+   */
   function cancelLayoutChanges() {
     editViewMode.value = 'content'
     isLayoutDrawerOpen.value = false
   }
 
+  /**
+   * Toggles the accordion collapsing state of a specific form card in outline view.
+   *
+   * @param key - Unique string identifier (e.g. company/project index name).
+   */
   function toggleCollapsed(key: string) {
     collapsedItems.value[key] = !collapsedItems.value[key]
   }
 
+  /**
+   * Checks if a specific form card is collapsed.
+   *
+   * @param key - Unique identifier.
+   * @returns True if collapsed, false otherwise.
+   */
   function isCollapsed(key: string): boolean {
     return !!collapsedItems.value[key]
   }
 
   return {
+    activeWorkspace,
     cvData,
+    coverLetterData,
     sizeMultiplier,
     selectedFont,
     customFontName,
@@ -317,6 +557,7 @@ export const useCVStore = defineStore('cv', () => {
     editorMode,
     sectionsOrder,
     disabledSections,
+    experienceHeaderStyle,
     editViewMode,
     activeSectionTab,
     isLayoutDrawerOpen,

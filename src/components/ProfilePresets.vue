@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useCVStore } from '@/stores/cv'
 import { useI18n } from '@/composables/useI18n'
-import type { CVData, BulletChars, SectionKey } from '@/types/cv'
+import type { CVData, CoverLetterData, BulletChars, SectionKey } from '@/types/cv'
 
 const store = useCVStore()
 const { t } = useI18n()
@@ -10,6 +10,7 @@ const { t } = useI18n()
 // ─── Profile Presets System ───
 interface ProfilePreset {
   cvData: CVData
+  coverLetterData?: CoverLetterData
   language: string
   sizeMultiplier: number
   selectedFont: string
@@ -18,18 +19,21 @@ interface ProfilePreset {
   customSectionLabels: Record<string, string>
   disabledSections: SectionKey[]
   sectionsOrder: SectionKey[]
+  experienceHeaderStyle?: 'classic' | 'role-company'
 }
 
 const STORAGE_KEY = 'profileData'
 
 function loadPresetsFromStorage(): (ProfilePreset | null)[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) {
-        while (parsed.length < 7) parsed.push(null)
-        return parsed
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) {
+          while (parsed.length < 7) parsed.push(null)
+          return parsed
+        }
       }
     }
   } catch (e) {
@@ -65,6 +69,7 @@ function savePreset() {
   // Deep clone references to prevent side effects
   const currentPreset: ProfilePreset = {
     cvData: JSON.parse(JSON.stringify(store.cvData)),
+    coverLetterData: JSON.parse(JSON.stringify(store.coverLetterData)),
     language: store.language,
     sizeMultiplier: store.sizeMultiplier,
     selectedFont: store.selectedFont,
@@ -73,10 +78,13 @@ function savePreset() {
     customSectionLabels: JSON.parse(JSON.stringify(store.customSectionLabels)),
     disabledSections: [...store.disabledSections],
     sectionsOrder: [...store.sectionsOrder],
+    experienceHeaderStyle: store.experienceHeaderStyle,
   }
 
   presets.value[slotIdx] = currentPreset
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(presets.value))
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(presets.value))
+  }
   showPresetMessage(t('preset_saved_to_slot').replace('{slot}', String(slotIdx + 1)))
 }
 
@@ -91,13 +99,31 @@ function loadPreset() {
   // Load new format
   if (preset.cvData) {
     store.cvData = JSON.parse(JSON.stringify(preset.cvData))
+    if (preset.coverLetterData) {
+      store.coverLetterData = JSON.parse(JSON.stringify(preset.coverLetterData))
+    } else {
+      store.coverLetterData = {
+        header: {
+          senderName: store.cvData.name || '',
+          senderEmail: store.cvData.email || '',
+          senderPhone: store.cvData.phone || '',
+          senderLocation: store.cvData.location || '',
+          date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+          recipientName: '',
+          recipientTitle: '',
+          recipientEmail: '',
+          companyName: '',
+          companyAddress: '',
+        },
+        greeting: '',
+        openingParagraph: '',
+        bodyParagraphs: [''],
+        closingParagraph: '',
+        signOff: '',
+      }
+    }
     store.language = preset.language || 'English'
     store.sizeMultiplier = preset.sizeMultiplier ?? 1.0
-    store.selectedFont = preset.selectedFont || 'notosans'
-    store.customFontName = preset.customFontName || ''
-    if (preset.bulletChars) {
-      store.bulletChars = JSON.parse(JSON.stringify(preset.bulletChars))
-    }
     if (preset.customSectionLabels) {
       store.customSectionLabels = JSON.parse(JSON.stringify(preset.customSectionLabels))
     }
@@ -133,7 +159,9 @@ function deletePreset() {
   }
 
   presets.value[slotIdx] = null
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(presets.value))
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(presets.value))
+  }
   showPresetMessage(t('preset_deleted_slot').replace('{slot}', String(slotIdx + 1)))
 }
 </script>
@@ -150,7 +178,7 @@ function deletePreset() {
         viewBox="0 0 24 24"
         stroke-width="2"
         stroke="currentColor"
-        class="w-4 h-4 text-theme-secondary"
+        class="w-4 h-4 text-primary-600 dark:text-primary-400"
       >
         <path
           stroke-linecap="round"

@@ -6,7 +6,7 @@ import { storeToRefs } from 'pinia'
 const store = useCVStore()
 const { t } = useI18n()
 
-const { sizeMultiplier, selectedFont, customFontName, language, bulletChars } = storeToRefs(store)
+const { sizeMultiplier, selectedFont, customFontName, language, bulletChars, experienceHeaderStyle } = storeToRefs(store)
 </script>
 
 <template>
@@ -146,6 +146,20 @@ const { sizeMultiplier, selectedFont, customFontName, language, bulletChars } = 
               </select>
             </div>
 
+            <!-- Job Header Style -->
+            <div class="flex flex-col gap-1">
+              <label class="text-[11px] text-theme-text-muted font-bold uppercase tracking-wider">{{
+                t('exp_header_style')
+              }}</label>
+              <select
+                v-model="experienceHeaderStyle"
+                class="w-full bg-theme-card border border-theme-border rounded-lg p-2 text-theme-text text-xs focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-sm"
+              >
+                <option value="classic">{{ t('style_classic') }}</option>
+                <option value="role-company">{{ t('style_role_company') }}</option>
+              </select>
+            </div>
+
             <!-- Custom Font Name -->
             <div v-if="selectedFont === 'custom'" class="flex flex-col gap-1">
               <label class="text-[11px] text-theme-text-muted font-bold uppercase tracking-wider">{{
@@ -229,7 +243,7 @@ const { sizeMultiplier, selectedFont, customFontName, language, bulletChars } = 
           :class="[
             'px-3 py-1 text-xs font-bold rounded-md transition cursor-pointer flex items-center gap-1.5',
             store.editViewMode === 'layout'
-              ? 'bg-theme-secondary text-white shadow-sm'
+              ? 'bg-primary-600 dark:bg-primary-500 text-white shadow-sm'
               : 'text-theme-text-muted hover:text-theme-text',
           ]"
         >
@@ -254,7 +268,7 @@ const { sizeMultiplier, selectedFont, customFontName, language, bulletChars } = 
           :class="[
             'px-3 py-1 text-xs font-bold rounded-md transition cursor-pointer flex items-center gap-1.5',
             store.editViewMode === 'content'
-              ? 'bg-theme-secondary text-white shadow-sm'
+              ? 'bg-primary-600 dark:bg-primary-500 text-white shadow-sm'
               : 'text-theme-text-muted hover:text-theme-text',
           ]"
         >
