@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { useCVStore } from '@/stores/cv'
-import { useI18n } from '@/composables/useI18n'
-import sampleData from '@/assets/sample.json'
 import EditorHeader from '@/components/editor/EditorHeader.vue'
 import EditorContentMode from '@/components/editor/EditorContentMode.vue'
 import EditorLayoutMode from '@/components/editor/EditorLayoutMode.vue'
 
 const store = useCVStore()
-const { t } = useI18n()
 
 function handleEditSection(secKey: string) {
   store.activeSectionTab = secKey
@@ -22,20 +19,6 @@ function handleEditSection(secKey: string) {
     }, 50)
   }
 }
-
-async function loadSampleCV() {
-  try {
-    const baseUrl = import.meta.env.BASE_URL || '/'
-    const res = await fetch(`${baseUrl}sample.json`)
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
-    const data = await res.json()
-    store.loadCv(data)
-  } catch (e) {
-    console.warn('Failed to fetch runtime sample.json, falling back to bundled data:', e)
-    store.loadCv(sampleData as any)
-  }
-}
-
 </script>
 
 <template>
@@ -44,16 +27,6 @@ async function loadSampleCV() {
   >
     <!-- Header -->
     <EditorHeader />
-
-    <!-- Teleport "Reset to Sample" to navbar -->
-    <Teleport defer to="#navbar-actions">
-      <button
-        @click="loadSampleCV"
-        class="bg-theme-element hover:bg-theme-hover text-theme-text border border-theme-border px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer shadow-sm"
-      >
-        {{ t('reset_sample') }}
-      </button>
-    </Teleport>
 
     <!-- Main Content Area -->
     <div class="flex-1 flex flex-col min-h-0 overflow-hidden mt-1">

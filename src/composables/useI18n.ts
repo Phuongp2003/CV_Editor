@@ -9,7 +9,7 @@ const translations = {
     // App / Navbar
     app_title: 'CV Workspace & Editor',
     simple_version: 'Simple Version',
-    settings_btn: 'More Features',
+    settings_btn: 'Website Information',
     download_btn: 'Download',
     reset_sample: 'Load Sample',
     lang_toggle: 'Language',
@@ -123,7 +123,7 @@ const translations = {
     coming_soon: 'Coming soon',
 
     // Settings Drawer
-    settings_title: 'More Features',
+    settings_title: 'Website Information',
     settings_close: 'Close',
 
     // AI Prompt
@@ -262,7 +262,7 @@ const translations = {
     // App / Navbar
     app_title: 'CV Workspace & Editor',
     simple_version: 'Bản cũ (Simple)',
-    settings_btn: 'Tính năng khác',
+    settings_btn: 'Thông tin website',
     download_btn: 'Tải xuống',
     reset_sample: 'Tải dữ liệu mẫu',
     lang_toggle: 'Ngôn ngữ',
@@ -376,7 +376,7 @@ const translations = {
     coming_soon: 'Sắp ra mắt',
 
     // Settings Drawer
-    settings_title: 'Tính năng khác',
+    settings_title: 'Thông tin website',
     settings_close: 'Đóng',
 
     // AI Prompt
@@ -439,7 +439,7 @@ const translations = {
 
     // Presets
     preset_manage: 'Quản lý các bản lưu hồ sơ',
-    preset_btn: 'Hồ Sơ Lưu',
+    preset_btn: 'Bản lưu',
     preset_title: 'Lưu hồ sơ (Presets)',
     preset_select_slot: 'Chọn ô lưu',
     preset_empty: 'Trống',

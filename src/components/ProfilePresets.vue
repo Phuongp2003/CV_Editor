@@ -1,14 +1,24 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { useCVStore } from '@/stores/cv'
 import { useI18n } from '@/composables/useI18n'
 import type { CVData, CoverLetterData, BulletChars, SectionKey } from '@/types/cv'
+
+const props = defineProps<{
+  open: boolean
+  mode: 'load' | 'save'
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:open', val: boolean): void
+}>()
 
 const store = useCVStore()
 const { t } = useI18n()
 
 // ─── Profile Presets System ───
 interface ProfilePreset {
+  presetName?: string
   cvData: CVData
   coverLetterData?: CoverLetterData
   language: string
@@ -23,6 +33,11 @@ interface ProfilePreset {
 }
 
 const STORAGE_KEY = 'profileData'
+
+const isOpen = computed({
+  get: () => props.open,
+  set: (v) => emit('update:open', v)
+})
 
 function loadPresetsFromStorage(): (ProfilePreset | null)[] {
   try {
@@ -46,6 +61,33 @@ const selectedSlot = ref(0)
 const presets = ref<(ProfilePreset | null)[]>(loadPresetsFromStorage())
 const presetStatus = ref('')
 const presetStatusType = ref<'success' | 'error' | ''>('')
+const presetNameInput = ref('')
+
+function updatePresetNameInput() {
+  const slotIdx = selectedSlot.value
+  const preset = presets.value[slotIdx]
+  if (preset) {
+    presetNameInput.value = preset.presetName || preset.cvData?.name || `Profile ${slotIdx + 1}`
+  } else {
+    presetNameInput.value = store.cvData?.name || `Profile ${slotIdx + 1}`
+  }
+}
+
+watch(selectedSlot, () => {
+  updatePresetNameInput()
+})
+
+// Refresh presets when modal opens
+watch(() => props.open, (newVal) => {
+  if (newVal) {
+    presets.value = loadPresetsFromStorage()
+    updatePresetNameInput()
+  }
+})
+
+onMounted(() => {
+  updatePresetNameInput()
+})
 
 function showPresetMessage(msg: string, isError = false) {
   presetStatus.value = msg
@@ -56,18 +98,19 @@ function showPresetMessage(msg: string, isError = false) {
   }, 3000)
 }
 
-function getPresetDisplayName(preset: any): string {
-  if (!preset) return ''
-  const name = preset.cvData ? preset.cvData.name || 'No Name' : preset.name || 'No Name'
+function getPresetDisplayName(preset: ProfilePreset): string {
+  if (preset.presetName) return preset.presetName
+  const name = preset.cvData ? preset.cvData.name || 'No Name' : 'No Name'
   const lang = preset.language || 'English'
   return `${name} - ${lang}`
 }
 
 function savePreset() {
   const slotIdx = selectedSlot.value
+  const nameToSave = presetNameInput.value.trim() || store.cvData.name || `Profile ${slotIdx + 1}`
 
-  // Deep clone references to prevent side effects
   const currentPreset: ProfilePreset = {
+    presetName: nameToSave,
     cvData: JSON.parse(JSON.stringify(store.cvData)),
     coverLetterData: JSON.parse(JSON.stringify(store.coverLetterData)),
     language: store.language,
@@ -86,6 +129,9 @@ function savePreset() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(presets.value))
   }
   showPresetMessage(t('preset_saved_to_slot').replace('{slot}', String(slotIdx + 1)))
+  setTimeout(() => {
+    isOpen.value = false
+  }, 1000)
 }
 
 function loadPreset() {
@@ -96,7 +142,6 @@ function loadPreset() {
     return
   }
 
-  // Load new format
   if (preset.cvData) {
     store.cvData = JSON.parse(JSON.stringify(preset.cvData))
     if (preset.coverLetterData) {
@@ -133,22 +178,12 @@ function loadPreset() {
     if (preset.sectionsOrder) {
       store.sectionsOrder = [...preset.sectionsOrder]
     }
-  } else {
-    // Migration fallback for older presets
-    const old = preset as any
-    store.cvData.name = old.name || ''
-    store.cvData.email = old.email || ''
-    store.cvData.phone = old.phone || ''
-    store.cvData.location = old.location || ''
-    store.cvData.github = old.github || ''
-    store.cvData.linkedin = old.linkedin || ''
-    store.cvData.website = old.website || ''
-    store.cvData.profileImage = old.profileImage || null
-    store.cvData.profileImageType = old.profileImageType || null
-    store.language = old.language || 'English'
   }
-
+  updatePresetNameInput()
   showPresetMessage(t('preset_loaded_from_slot').replace('{slot}', String(slotIdx + 1)))
+  setTimeout(() => {
+    isOpen.value = false
+  }, 1000)
 }
 
 function deletePreset() {
@@ -162,98 +197,140 @@ function deletePreset() {
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(presets.value))
   }
+  updatePresetNameInput()
   showPresetMessage(t('preset_deleted_slot').replace('{slot}', String(slotIdx + 1)))
+}
+
+function handleInputClick(e: Event) {
+  const target = e.target as HTMLInputElement
+  target.select()
 }
 </script>
 
 <template>
-  <UPopover :content="{ align: 'end', side: 'bottom', sideOffset: 8 }">
-    <button
-      class="bg-theme-element hover:bg-theme-hover border border-theme-border text-theme-text-sub hover:text-theme-text px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 shadow-sm"
-      :title="t('preset_manage')"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width="2"
-        stroke="currentColor"
-        class="w-4 h-4 text-primary-600 dark:text-primary-400"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm-1.2 6.477a6 6 0 0 0-5.1 0A2.25 2.25 0 0 1 2.25 13.611V12.75a2.25 2.25 0 0 1 2.25-2.25h1.5a2.25 2.25 0 0 1 2.25 2.25v.861a2.25 2.25 0 0 1-1.35 2.066Z"
-        />
-      </svg>
-      <span>{{ t('preset_btn') }}</span>
-    </button>
+  <UModal
+    v-model:open="isOpen"
+    :overlay="true"
+    :modal="true"
+    :title="props.mode === 'save' 
+      ? (store.uiLanguage === 'Vietnamese' ? 'Lưu hồ sơ hiện tại' : 'Save Current Profile')
+      : (store.uiLanguage === 'Vietnamese' ? 'Tải hồ sơ đã lưu' : 'Load Saved Profile')"
+    class="max-w-xl w-full"
+  >
+    <template #body>
+      <div class="space-y-5 py-2 text-theme-text-sub">
+        <!-- Visual Grid of Slots -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div
+            v-for="(preset, index) in presets"
+            :key="index"
+            @click="selectedSlot = index"
+            :class="[
+              'p-3.5 border rounded-xl transition duration-150 cursor-pointer flex flex-col gap-1 relative group select-none',
+              selectedSlot === index
+                ? 'border-primary-500 bg-primary-500/5 ring-1 ring-primary-500 shadow-sm'
+                : 'border-theme-border hover:border-theme-border-hover bg-theme-muted/30 hover:bg-theme-muted/50'
+            ]"
+          >
+            <!-- Checkmark badge for selected slot -->
+            <div
+              v-if="selectedSlot === index"
+              class="absolute top-2 right-2 w-4 h-4 bg-primary-500 rounded-full flex items-center justify-center text-white"
+            >
+              <UIcon name="i-lucide-check" class="w-3 h-3" />
+            </div>
 
-    <template #content>
-      <div
-        class="p-4 w-72 space-y-4 bg-theme-card border border-theme-border rounded-xl shadow-2xl text-theme-text-sub"
-      >
-        <h4
-          class="text-xs font-bold text-theme-text flex items-center gap-1.5 border-b border-theme-border pb-2"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="w-4 h-4 text-indigo-500 dark:text-indigo-400"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm-1.2 6.477a6 6 0 0 0-5.1 0A2.25 2.25 0 0 1 2.25 13.611V12.75a2.25 2.25 0 0 1 2.25-2.25h1.5a2.25 2.25 0 0 1 2.25 2.25v.861a2.25 2.25 0 0 1-1.35 2.066Z"
-            />
-          </svg>
-          {{ t('preset_title') }}
-        </h4>
+            <div class="flex items-center gap-1.5">
+              <span class="w-5 h-5 rounded bg-theme-element border border-theme-border flex items-center justify-center text-[10px] font-extrabold text-theme-text-muted">
+                {{ index + 1 }}
+              </span>
+              <span class="text-xs font-bold text-theme-text truncate max-w-[130px]">
+                {{ preset ? getPresetDisplayName(preset) : (store.uiLanguage === 'Vietnamese' ? 'Khe trống' : 'Empty Slot') }}
+              </span>
+            </div>
 
-        <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] text-theme-text-muted font-bold uppercase tracking-wider"
-            >{{ t('preset_select_slot') }}</label
-          >
-          <select
-            v-model="selectedSlot"
-            class="w-full bg-theme-card border border-theme-border rounded-lg p-2 text-theme-text text-xs focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-sm"
-          >
-            <option v-for="(preset, index) in presets" :key="index" :value="index">
-              {{ t('preset_slot') }} {{ index + 1 }} {{ preset ? `(${getPresetDisplayName(preset)})` : `(${t('preset_empty')})` }}
-            </option>
-          </select>
+            <div class="text-[10px] text-theme-text-muted font-medium mt-1">
+              <span v-if="preset">
+                {{ preset.cvData.email || 'No email' }}
+              </span>
+              <span v-else>
+                {{ store.uiLanguage === 'Vietnamese' ? 'Bấm để chọn lưu vào đây' : 'Click to select this slot' }}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div class="flex gap-2 pt-1">
-          <button
-            @click="savePreset"
-            class="flex-1 py-1.5 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-md select-none text-center"
-          >
-            {{ t('preset_save_current') }}
-          </button>
-          <button
-            @click="loadPreset"
-            class="flex-1 py-1.5 bg-theme-element hover:bg-theme-hover border border-theme-border text-theme-text-sub hover:text-theme-text font-bold rounded-lg text-xs transition cursor-pointer shadow-sm select-none text-center"
-          >
-            {{ t('preset_load') }}
-          </button>
-          <button
-            @click="deletePreset"
-            class="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-md select-none text-center"
-            title="Delete preset slot"
-          >
-            {{ t('preset_delete') }}
-          </button>
+        <!-- Name Input Area for Save Mode -->
+        <div v-if="props.mode === 'save'" class="flex flex-col gap-1.5 bg-theme-muted/30 border border-theme-border/60 rounded-xl p-4 shadow-inner">
+          <label class="text-[10px] text-theme-text font-bold uppercase tracking-wider select-none">
+            {{ store.uiLanguage === 'Vietnamese' ? 'Tên hiển thị bản lưu' : 'Display Name' }}
+          </label>
+          <input
+            type="text"
+            v-model="presetNameInput"
+            @focus="handleInputClick"
+            @click="handleInputClick"
+            class="w-full bg-theme-card border border-theme-border rounded-lg px-3 py-2 text-theme-text text-xs focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-sm font-semibold"
+            :placeholder="store.uiLanguage === 'Vietnamese' ? 'Nhập tên bản lưu...' : 'Enter preset name...'"
+          />
+        </div>
+
+        <!-- Details of the slot if loaded -->
+        <div v-if="props.mode === 'load' && presets[selectedSlot]" class="bg-theme-muted/30 border border-theme-border/60 rounded-xl p-4 text-xs space-y-1">
+          <p class="font-bold text-theme-text">
+            {{ store.uiLanguage === 'Vietnamese' ? 'Thông tin chi tiết bản lưu:' : 'Preset Details:' }}
+          </p>
+          <ul class="text-theme-text-muted space-y-0.5 list-disc pl-4 font-medium">
+            <li>Candidate: {{ presets[selectedSlot]?.cvData?.name || 'N/A' }}</li>
+            <li>Language: {{ presets[selectedSlot]?.language }}</li>
+            <li>Font: {{ presets[selectedSlot]?.selectedFont }}</li>
+          </ul>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between border-t border-theme-border pt-4">
+          <div>
+            <button
+              v-if="presets[selectedSlot]"
+              @click="deletePreset"
+              class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-md select-none text-center active:scale-95"
+            >
+              {{ store.uiLanguage === 'Vietnamese' ? 'Xóa bản lưu' : 'Delete Slot' }}
+            </button>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <button
+              @click="isOpen = false"
+              class="px-4 py-2 bg-theme-element hover:bg-theme-hover border border-theme-border text-theme-text-sub font-bold rounded-lg text-xs transition cursor-pointer shadow-sm select-none text-center active:scale-95"
+            >
+              {{ store.uiLanguage === 'Vietnamese' ? 'Hủy bỏ' : 'Cancel' }}
+            </button>
+
+            <button
+              v-if="props.mode === 'save'"
+              @click="savePreset"
+              class="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-md select-none text-center active:scale-95"
+            >
+              {{ store.uiLanguage === 'Vietnamese' ? 'Lưu hồ sơ' : 'Save Profile' }}
+            </button>
+
+            <button
+              v-else
+              @click="loadPreset"
+              :disabled="!presets[selectedSlot]"
+              class="px-4 py-2 bg-primary-600 hover:bg-primary-500 disabled:opacity-40 disabled:hover:bg-primary-600 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-md select-none text-center active:scale-95"
+            >
+              {{ store.uiLanguage === 'Vietnamese' ? 'Tải hồ sơ' : 'Load Profile' }}
+            </button>
+          </div>
         </div>
 
         <!-- Status message -->
         <p
           v-if="presetStatus"
           :class="[
-            'text-xs font-semibold transition-all duration-150',
+            'text-[11px] font-bold transition-all duration-150 text-center',
             presetStatusType === 'error'
               ? 'text-rose-500'
               : 'text-primary-600 dark:text-primary-400',
@@ -263,5 +340,5 @@ function deletePreset() {
         </p>
       </div>
     </template>
-  </UPopover>
+  </UModal>
 </template>

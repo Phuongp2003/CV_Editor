@@ -16,9 +16,9 @@ jobs:
     env:
       CNAME: 'cv-editor.fynx.io.vn' # Leave empty if you do not use a custom domain
       VITE_BASE_URL: '/' # Change to '/repo-name/' if using default username.github.io/repo-name path
-      VITE_SEO_TITLE: 'CV Editor — Free Online Resume & Cover Letter Builder'
-      VITE_SEO_DESCRIPTION: 'Build a professional CV and cover letter in minutes. Live PDF preview, AI prompt helper, export to PDF/DOCX/HTML, supports English, Vietnamese, Japanese and more. Free, no account needed.'
-      VITE_SEO_KEYWORDS: 'CV builder, resume editor, cover letter generator, free resume builder, professional resume, export pdf, export docx, online CV, AI resume, Vietnamese CV, resume template'
+      VITE_SEO_TITLE: 'CV Editor — Free Harvard-Style Resume & Cover Letter Builder'
+      VITE_SEO_DESCRIPTION: 'Write a professional CV and cover letter following the clean Harvard format. Real-time PDF preview, AI STAR method prompt helpers, and instant local imports. 100% free with no registration.'
+      VITE_SEO_KEYWORDS: 'harvard resume builder, harvard cv template, star method resume, free resume builder, cover letter builder, export pdf cv, export word resume, free online cv editor, student resume template, AI resume helper'
       VITE_SEO_AUTHOR: 'sjnosukequy & phuongp2003'
       VITE_SEO_CANONICAL: 'https://cv-editor.fynx.io.vn/'
 

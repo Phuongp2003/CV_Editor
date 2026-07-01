@@ -1,17 +1,112 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 import { useCVStore } from '@/stores/cv'
+import { usePromptsStore } from '@/stores/prompts'
 import CVEditor from '@/components/CVEditor.vue'
 import CVPlayer from '@/components/CVPlayer'
 import CoverLetterEditor from '@/components/editor/CoverLetterEditor.vue'
 import CoverLetterPlayer from '@/components/CVPlayer/CoverLetterPlayer.vue'
 import SettingsDrawer from '@/components/SettingsDrawer.vue'
 import ProfilePresets from '@/components/ProfilePresets.vue'
+import ImportModal from '@/components/ImportModal.vue'
+import { PromptHubModal } from '@/components/prompts'
 
 const store = useCVStore()
+const promptsStore = usePromptsStore()
 const isSettingsOpen = ref(false)
+const isImportOpen = ref(false)
+const isPresetOpen = ref(false)
+const presetMode = ref<'load' | 'save'>('load')
+
 const { t } = useI18n()
+
+function openPresetModal(mode: 'load' | 'save') {
+  presetMode.value = mode
+  isPresetOpen.value = true
+}
+
+// Custom UI theme overrides for UNavigationMenu to align height/padding nicely
+// Restored to a spacious 2-column layout to match hehe.html and avoid clipping
+const customUi = {
+  link: 'px-3 py-1.5 text-xs font-semibold rounded-lg text-theme-text-sub hover:text-theme-text hover:bg-theme-hover/50 flex items-center gap-1.5 transition-colors',
+  content: 'bg-theme-card border border-theme-border rounded-xl shadow-2xl p-1.5 z-50 text-theme-text-sub',
+  linkLabel: 'text-xs font-bold',
+  childList: 'isolate grid gap-2 grid-cols-1 p-1.5',
+  childLink: 'p-2 rounded-lg hover:bg-theme-hover flex items-start gap-2.5 transition-colors',
+  childLinkLabel: 'text-xs font-extrabold text-theme-text block',
+  childLinkDescription: 'text-[10px] text-theme-text-muted mt-0.5 leading-relaxed font-medium block'
+}
+
+// Navigation menu items for AI and Simple version
+const navItems = computed(() => {
+  const isVi = store.uiLanguage === 'Vietnamese'
+
+  return [
+    [
+      {
+        label: isVi ? 'Trợ lý AI (Gems)' : 'AI Assistants (Gems)',
+        icon: 'i-lucide-sparkles',
+        children: [
+          {
+            label: isVi ? 'Mở AI Prompt Hub' : 'Open AI Prompt Hub',
+            description: isVi ? 'Xem toàn bộ hướng dẫn, prompt và link Gems' : 'View all guidelines, prompts and Gems links',
+            icon: 'i-lucide-cpu',
+            onSelect: () => {
+              promptsStore.openModal()
+            }
+          },
+          {
+            label: isVi ? 'Đánh giá CV (Software Engineer)' : 'Software Engineer Assistant',
+            description: isVi ? 'Đánh giá CV theo JD cho nhà phát triển' : 'Evaluate CV against JD for developers',
+            icon: 'i-lucide-code',
+            onSelect: () => {
+              promptsStore.openModal('se')
+            }
+          },
+          {
+            label: isVi ? 'Đánh giá CV (Business Analyst)' : 'Business Analyst Assistant',
+            description: isVi ? 'Hỗ trợ viết CV theo JD cho BA' : 'Tailor CV against JD for Business Analysts',
+            icon: 'i-lucide-presentation',
+            onSelect: () => {
+              promptsStore.openModal('ba')
+            }
+          },
+          {
+            label: isVi ? 'Đánh giá CV (Quality Control)' : 'Quality Control Assistant',
+            description: isVi ? 'Hỗ trợ viết CV theo JD cho QC' : 'Tailor CV against JD for Quality Control',
+            icon: 'i-lucide-shield-check',
+            onSelect: () => {
+              promptsStore.openModal('qc')
+            }
+          },
+          {
+            label: isVi ? 'Đánh giá CV (Product Owner)' : 'Product Owner Assistant',
+            description: isVi ? 'Hỗ trợ viết CV theo JD cho PO/PM' : 'Tailor CV against JD for Product Owners',
+            icon: 'i-lucide-rocket',
+            onSelect: () => {
+              promptsStore.openModal('po')
+            }
+          },
+          {
+            label: isVi ? 'Viết CV từ CV khác' : 'CV Converter',
+            description: isVi ? 'Chuyển đổi dữ liệu CV cũ/thô thành mẫu chuẩn' : 'Convert raw or old CV text to standard format',
+            icon: 'i-lucide-refresh-cw',
+            onSelect: () => {
+              promptsStore.openModal('convert')
+            }
+          }
+        ]
+      },
+      {
+        label: isVi ? 'Bản rút gọn' : 'Simple Version',
+        icon: 'i-lucide-external-link',
+        to: '/simple/',
+        target: '_blank'
+      }
+    ]
+  ]
+})
 </script>
 
 <template>
@@ -21,87 +116,119 @@ const { t } = useI18n()
     >
       <!-- Navbar (Fixed Top) -->
       <header
-        class="bg-theme-card border-b border-theme-border py-3.5 px-6 flex justify-between items-center shadow-sm flex-shrink-0 transition-colors duration-200"
+        class="bg-theme-card border-b border-theme-border py-2 px-6 flex justify-between items-center shadow-sm flex-shrink-0 transition-colors duration-200"
       >
-        <!-- Logo, Title & Workspace Selector -->
-        <div class="flex items-center gap-6">
-          <div class="flex items-center gap-3">
+        <!-- Left Section: Logo, Title & Workspace Toggle Tabs (Legacy Switch Style) -->
+        <div class="flex items-center gap-4 flex-shrink-0">
+          <div class="flex items-center gap-2.5">
             <div
-              class="w-8 h-8 rounded-lg bg-primary-600 dark:bg-primary-500 flex items-center justify-center font-extrabold text-white dark:text-theme-page text-lg shadow-md"
+              class="w-8 h-8 rounded-lg bg-primary-600 dark:bg-primary-500 flex items-center justify-center font-extrabold text-white dark:text-theme-page text-lg shadow-md select-none"
             >
               CV
             </div>
-            <div class="flex items-center gap-1.5">
-              <h1
-                class="text-lg font-extrabold tracking-tight bg-gradient-to-r from-primary-600 to-primary-400 dark:from-primary-550 dark:to-primary-300 bg-clip-text text-transparent"
-              >
-                {{ t('app_title') }}
-              </h1>
-            </div>
+            <h1
+              class="text-base font-extrabold tracking-tight bg-gradient-to-r from-primary-600 to-primary-400 dark:from-primary-550 dark:to-primary-300 bg-clip-text text-transparent hidden xl:block"
+            >
+              {{ t('app_title') }}
+            </h1>
           </div>
 
           <!-- Workspace Selector Toggle Tabs -->
-          <div class="hidden md:flex items-center gap-1 bg-theme-muted/50 border border-theme-border p-1 rounded-xl select-none">
+          <div class="flex items-center gap-1 bg-theme-muted/50 border border-theme-border p-0.5 rounded-lg select-none">
             <button
               @click="store.activeWorkspace = 'cv'"
               :class="[
-                'px-4 py-1.5 text-xs font-bold rounded-lg transition duration-200 cursor-pointer flex items-center gap-1.5',
+                'px-3.5 py-1 text-xs font-bold rounded-md transition duration-150 cursor-pointer flex items-center gap-1 select-none',
                 store.activeWorkspace === 'cv'
-                  ? 'bg-primary-600 text-white shadow-md'
-                  : 'text-theme-text-muted hover:text-theme-text hover:bg-theme-hover/50',
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'text-theme-text-muted hover:text-theme-text hover:bg-theme-hover/30',
               ]"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-              </svg>
-              {{ t('cv_workspace') }}
+              <UIcon name="i-lucide-file-text" class="w-3.5 h-3.5" />
+              <span>{{ t('cv_workspace') }}</span>
             </button>
             <button
               @click="store.activeWorkspace = 'cover-letter'"
               :class="[
-                'px-4 py-1.5 text-xs font-bold rounded-lg transition duration-200 cursor-pointer flex items-center gap-1.5',
+                'px-3.5 py-1 text-xs font-bold rounded-md transition duration-150 cursor-pointer flex items-center gap-1 select-none',
                 store.activeWorkspace === 'cover-letter'
-                  ? 'bg-primary-600 text-white shadow-md'
-                  : 'text-theme-text-muted hover:text-theme-text hover:bg-theme-hover/50',
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'text-theme-text-muted hover:text-theme-text hover:bg-theme-hover/30',
               ]"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-              </svg>
-              {{ t('cover_letter_workspace') }}
+              <UIcon name="i-lucide-mail" class="w-3.5 h-3.5" />
+              <span>{{ t('cover_letter_workspace') }}</span>
             </button>
           </div>
         </div>
 
+        <!-- Center Section: AI Assistants (Gems) Dropdown & Info links -->
+        <div class="flex-1 max-w-sm px-4 hidden md:block">
+          <UNavigationMenu
+            highlight
+            highlight-color="primary"
+            orientation="horizontal"
+            :items="navItems"
+            :ui="customUi"
+            class="w-full"
+          />
+        </div>
 
-        <!-- Teleport Target for Actions & Settings Gear -->
-        <div class="flex items-center gap-3">
-          <!-- Middle actions from children (Teleported) -->
-          <div id="navbar-actions" class="flex items-center gap-3"></div>
-
-          <!-- Simple version link -->
-          <a
-            href="/simple/"
-            target="_blank"
-            class="bg-theme-element hover:bg-theme-hover border border-theme-border text-theme-text-sub hover:text-theme-text px-3 py-1.5 rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
-            :title="t('simple_version')"
+        <!-- Right Section: Actions -->
+        <div class="flex items-center gap-2.5 flex-shrink-0">
+          <!-- Reset / Load Sample Data button -->
+          <button
+            @click="store.loadSample()"
+            class="px-2.5 py-1.5 bg-theme-element hover:bg-theme-hover border border-theme-border text-theme-text hover:text-primary-500 rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-sm flex items-center gap-1 active:scale-95 select-none"
+            :title="t('reset_sample') || 'Reset to Sample Data'"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="w-3.5 h-3.5"
+            <UIcon name="i-lucide-refresh-cw" class="w-3.5 h-3.5" />
+            <span class="hidden sm:inline">{{ t('reset_sample') || 'Load Sample' }}</span>
+          </button>
+
+          <!-- Middle actions (Teleported download buttons) -->
+          <div id="navbar-actions" class="flex items-center gap-2"></div>
+
+          <!-- Import JSON Data Button with Label (Next to Download button) -->
+          <button
+            @click="isImportOpen = true"
+            class="bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center gap-1 active:scale-95 select-none"
+            :title="store.uiLanguage === 'Vietnamese' ? 'Nhập dữ liệu JSON' : 'Import JSON Data'"
+          >
+            <UIcon name="i-lucide-import" class="w-3.5 h-3.5 text-white animate-pulse" />
+            <span class="hidden sm:inline">{{ store.uiLanguage === 'Vietnamese' ? 'Nhập dữ liệu' : 'Import' }}</span>
+          </button>
+
+          <!-- Preset Manage Button Popover (Behavior identical to Download button popover) -->
+          <UPopover :content="{ align: 'end', side: 'bottom', sideOffset: 8 }">
+            <button
+              class="bg-theme-element hover:bg-theme-hover border border-theme-border text-theme-text-sub hover:text-theme-text px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95 select-none"
+              :title="t('preset_manage')"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
-              />
-            </svg>
-            <span>{{ t('simple_version') }}</span>
-          </a>
+              <UIcon name="i-lucide-folder-heart" class="w-4 h-4 text-indigo-500" />
+              <span>{{ t('preset_btn') || 'Presets' }}</span>
+            </button>
+            <template #content>
+              <div class="flex flex-col p-1 w-44 bg-theme-card border border-theme-border rounded-xl shadow-2xl text-theme-text-sub">
+                <!-- Load Option -->
+                <button
+                  @click="openPresetModal('load')"
+                  class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-theme-hover hover:text-theme-text transition text-left cursor-pointer rounded-lg w-full"
+                >
+                  <UIcon name="i-lucide-folder-open" class="w-4 h-4 text-indigo-500" />
+                  <span>{{ store.uiLanguage === 'Vietnamese' ? 'Tải hồ sơ' : 'Load Preset' }}</span>
+                </button>
+                <!-- Save Option -->
+                <button
+                  @click="openPresetModal('save')"
+                  class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-theme-hover hover:text-theme-text transition text-left cursor-pointer rounded-lg w-full"
+                >
+                  <UIcon name="i-lucide-save" class="w-4 h-4 text-indigo-500" />
+                  <span>{{ store.uiLanguage === 'Vietnamese' ? 'Lưu hồ sơ hiện tại' : 'Save Preset' }}</span>
+                </button>
+              </div>
+            </template>
+          </UPopover>
 
           <!-- UI Language Toggle -->
           <div
@@ -110,7 +237,7 @@ const { t } = useI18n()
             <button
               @click="store.uiLanguage = 'English'"
               :class="[
-                'px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer',
+                'px-3 py-1.5 text-xs font-bold rounded-md transition cursor-pointer active:scale-95',
                 store.uiLanguage === 'English'
                   ? 'bg-primary-600 text-white shadow-sm'
                   : 'text-theme-text-muted hover:text-theme-text',
@@ -121,7 +248,7 @@ const { t } = useI18n()
             <button
               @click="store.uiLanguage = 'Vietnamese'"
               :class="[
-                'px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer',
+                'px-3 py-1.5 text-xs font-bold rounded-md transition cursor-pointer active:scale-95',
                 store.uiLanguage === 'Vietnamese'
                   ? 'bg-primary-600 text-white shadow-sm'
                   : 'text-theme-text-muted hover:text-theme-text',
@@ -131,39 +258,23 @@ const { t } = useI18n()
             </button>
           </div>
 
-          <!-- Profile Presets Popover -->
-          <ProfilePresets />
-
-          <!-- Color Mode Button -->
+          <!-- Color Mode Toggle Button -->
           <UColorModeButton size="md" class="cursor-pointer" />
 
-          <!-- Settings Button (More Features) -->
+          <!-- Settings Button -->
           <button
             @click="isSettingsOpen = true"
-            class="bg-theme-element hover:bg-theme-hover border border-theme-border text-theme-text-sub hover:text-theme-text p-2 rounded-lg transition duration-150 cursor-pointer shadow-sm flex items-center justify-center"
+            class="bg-theme-element hover:bg-theme-hover border border-theme-border text-theme-text-sub hover:text-theme-text p-2 rounded-lg transition duration-150 cursor-pointer shadow-sm flex items-center justify-center active:scale-95 select-none"
             :title="t('settings_btn')"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2.2"
-              stroke="currentColor"
-              class="w-4 h-4"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
-              />
-            </svg>
+            <UIcon name="i-lucide-sliders" class="w-4 h-4 text-indigo-500" />
           </button>
         </div>
       </header>
 
-      <!-- Main Layout -->
+      <!-- Main Layout Grid -->
       <main
-        class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-[90vw] mx-auto pb-6 pt-4"
+        class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-[95vw] mx-auto pb-6 pt-4"
       >
         <!-- Editor Pane -->
         <div class="flex flex-col h-full overflow-hidden">
@@ -180,6 +291,15 @@ const { t } = useI18n()
 
       <!-- Settings Drawer Component -->
       <SettingsDrawer v-model="isSettingsOpen" />
+
+      <!-- Profile Presets Modal Dialog (Load/Save UI) -->
+      <ProfilePresets v-model:open="isPresetOpen" :mode="presetMode" />
+
+      <!-- Import CV/Cover Letter Data Modal Dialog -->
+      <ImportModal v-model="isImportOpen" />
+
+      <!-- Prompts Hub Modal Dialog -->
+      <PromptHubModal />
     </div>
   </UApp>
 </template>

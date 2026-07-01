@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
+import sampleData from '@/assets/sample.json'
 import type {
   CVData,
   BulletPart,
@@ -545,6 +546,19 @@ export const useCVStore = defineStore('cv', () => {
     return !!collapsedItems.value[key]
   }
 
+  async function loadSample() {
+    try {
+      const baseUrl = import.meta.env.BASE_URL || '/'
+      const res = await fetch(`${baseUrl}sample.json`)
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+      const data = await res.json()
+      loadCv(data)
+    } catch (e) {
+      console.warn('Failed to fetch runtime sample.json, falling back to bundled data:', e)
+      loadCv(sampleData as any)
+    }
+  }
+
   return {
     activeWorkspace,
     cvData,
@@ -570,6 +584,7 @@ export const useCVStore = defineStore('cv', () => {
     downloadTrigger,
     pdfBlob,
     loadCv,
+    loadSample,
     updateSectionLabel,
     toggleSection,
     isSectionEnabled,
@@ -580,4 +595,5 @@ export const useCVStore = defineStore('cv', () => {
     toggleCollapsed,
     isCollapsed,
   }
-})
+}
+)
