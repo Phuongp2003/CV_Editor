@@ -62,3 +62,19 @@ jobs:
           folder: dist
           branch: gh-pages # Branch to deploy static assets to
           clean: true
+  
+      - name: Call post-deploy webhook
+        if: success()
+        env:
+          WEBHOOK_URL: ${{ secrets.POST_DEPLOY_WEBHOOK_URL }}
+        run: |
+          curl -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "repo":"${{ github.repository }}",
+              "sha":"${{ github.sha }}",
+              "ref":"${{ github.ref }}",
+              "run_id":"${{ github.run_id }}",
+              "pages_url":"${{ secrets.TARGET_DEPLOY_URL }}",
+              "status":"success"
+            }'
