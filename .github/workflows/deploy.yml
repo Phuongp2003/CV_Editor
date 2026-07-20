@@ -68,13 +68,47 @@ jobs:
         env:
           WEBHOOK_URL: ${{ secrets.POST_DEPLOY_WEBHOOK_URL }}
         run: |
-          curl -X POST "$WEBHOOK_URL" \
+          set -euo pipefail
+      
+          if [ -z "${WEBHOOK_URL:-}" ]; then
+            echo "POST_DEPLOY_WEBHOOK_URL is empty"
+            exit 1
+          fi
+      
+          case "$WEBHOOK_URL" in
+            http://*|https://*) ;;
+            *)
+              echo "POST_DEPLOY_WEBHOOK_URL must start with http:// or https://"
+              exit 1
+              ;;
+          esac
+      
+          payload=$(cat <<EOF
+          {
+            "repo":"${{ github.repository }}",
+            "sha":"${{ github.sha }}",
+            "ref":"${{ github.ref }}",
+            "run_id":"${{ github.run_id }}",
+            "pages_url":"${{ secrets.TARGET_DEPLOY_URL }}",
+            "status":"success"
+          }
+          EOF
+          )
+      
+          http_code=$(curl --silent --show-error --location \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --retry 2 --retry-delay 2 --retry-all-errors \
+            --output /tmp/webhook_response.txt \
+            --write-out "%{http_code}" \
+            -X POST "$WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -d '{
-              "repo":"${{ github.repository }}",
-              "sha":"${{ github.sha }}",
-              "ref":"${{ github.ref }}",
-              "run_id":"${{ github.run_id }}",
-              "pages_url":"${{ secrets.TARGET_DEPLOY_URL }}",
-              "status":"success"
-            }'
+            --data-raw "$payload")
+      
+          echo "Webhook HTTP status: $http_code"
+          cat /tmp/webhook_response.txt || true
+      
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "Webhook failed with HTTP $http_code"
+            exit 1
+          fi
