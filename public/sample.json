@@ -3,124 +3,132 @@
     "name": "Pham Bui Nam Phuong",
     "email": "phambuinamphuong@gmail.com",
     "phone": "0942538652",
-    "location": "Ho Chi Minh City, Viet Nam",
+    "location": "Ho Chi Minh City, Vietnam",
     "linkedin": "https://linkedin.com/in/phambuinamphuong",
     "linkedin_placeholder": "linkedin.com/in/phambuinamphuong",
     "github": "https://github.com/Phuongp2003",
     "github_placeholder": "github.com/Phuongp2003",
     "website": "",
     "website_placeholder": "",
-    "summary": "A highly adaptable Web Developer with hands-on expertise in FastAPI, ReactJS, and CI/CD pipelines. Backed by a strong academic foundation in Telecommunications and Distributed Systems, I specialize in engineering secure API integrations, architecting Identity Management solutions, and optimizing deployment engines to support high-performance enterprise applications.",
-    "objective": "Dedicated Software Engineer seeking to leverage hands-on expertise in high-concurrency API engineering, federated IAM middleware, and robust CI/CD automation to drive system reliability and deliver high-impact product features.",
+    "summary": "",
+    "objective": "**Software Engineer** with **2+ years** building web apps in **C#/.NET, Python and TypeScript**, including 15 months as the main contributor to a production CRM (login cut from **~60s to ~5s**). Available immediately.",
     "experiences": [
       {
-        "position": "Software Developer",
+        "position": "Software Engineer",
         "company": "PRIMAS CO. LTD",
-        "location": "Ho Chi Minh City, Viet Nam",
-        "dates": "07/2025 - Present",
+        "location": "Ho Chi Minh City, Vietnam",
+        "dates": "10/2025 - Present",
         "bullets": [
           {
-            "id": "p1h1",
+            "id": "pr-h",
             "type": "header",
-            "text": "**Altus Entertainment** - A large-scale CRM and CMS ecosystem managing over 20,000 artists in the US."
+            "text": "Altus BackOffice, a CRM and booking platform (.NET 5, EF Core, MySQL, Angular 12): **457 of 1,009 commits**."
           },
           {
-            "id": "p1b1",
+            "id": "pr-1",
             "type": "l1",
-            "text": "Engineered an **automated content generation pipeline** integrating FastAPI, ReactJS, and LLMs, eliminating manual data entry delays and **accelerating the article drafting process by 80%** (from 5 hours to under 1 hour)."
+            "text": "Cut reported login time from **~60s to ~5s** by replacing full role-permission token hydration with **per-user, per-screen permission loading** behind a feature flag (C#/ASP.NET Core, Angular); shipped in v5.35.1."
           },
           {
-            "id": "p1b2",
+            "id": "pr-2",
             "type": "l1",
-            "text": "Optimized complex **Role-Based Access Control (RBAC)** trees to resolve a critical **performance bottleneck**, **reducing login latency by 91%** (from 60 seconds to 5 seconds) for over 3,000 permission nodes."
+            "text": "Wrote the workflow engine for an internal AI content tool (FastAPI, PostgreSQL, Redis, React) with DAG scheduling, versioned releases, token auditing and a RestrictedPython sandbox; its **15 production workflows** cut article drafting from **~5 hours to under 1 hour**."
           },
           {
-            "id": "p1b3",
+            "id": "pr-3",
             "type": "l1",
-            "text": "Architected a **fault-tolerant message broker system** using RabbitMQ with strict retry mechanisms, successfully **resolving severe cross-service data discrepancies by 80%** without data loss."
+            "text": "Building a **read-only .NET 9 gateway** that lets AI clients query BackOffice data through a hand-written MCP server and GraphQL (HotChocolate): **OAuth 2.1 with PKCE** and token rotation, writes blocked at the DbContext, rate limits. Lab stage."
+          },
+          {
+            "id": "pr-4",
+            "type": "l1",
+            "text": "Added a **slow-query monitor** (EF Core interceptor feeding a Vue 3 + ECharts dashboard) and moved activity-log writes off the request path onto **RabbitMQ**, with a background-job fallback when the broker is down."
+          },
+          {
+            "id": "pr-5",
+            "type": "l1",
+            "text": "**Synced proposals both ways** between the BackOffice and the sales team's Supabase app (v5.37.1)."
           }
         ]
       },
       {
-        "position": "Junior Full-stack Developer",
+        "position": "Software Engineer Intern",
+        "company": "PRIMAS CO. LTD",
+        "location": "Ho Chi Minh City, Vietnam",
+        "dates": "07/2025 - 09/2025",
+        "bullets": [
+          {
+            "id": "in-1",
+            "type": "l1",
+            "text": "Moved homepage profile search to **Algolia**, built **translation screens** for categories, locations and FAQs, and split sitemap export into configurable batches (ASP.NET Core, Angular)."
+          }
+        ]
+      },
+      {
+        "position": "Full-stack Developer",
         "company": "ALGORIT LAB",
-        "location": "Ho Chi Minh City, Viet Nam",
+        "location": "Ho Chi Minh City, Vietnam",
         "dates": "01/2024 - 04/2025",
         "bullets": [
           {
-            "id": "a1h1",
-            "type": "header",
-            "text": "**NEEC Platform** - Custom CMS development and infrastructure optimization for an international consulting agency."
+            "id": "al-1",
+            "type": "l1",
+            "text": "Built the **NEEC site (neec.vn)** end to end: Express + Prisma APIs on MySQL/MariaDB with JWT auth, uploads and Swagger, plus **Vue 3 CMS** screens with CKEditor, article-tag management and filtered search."
           },
           {
-            "id": "a1b1",
+            "id": "al-2",
             "type": "l1",
-            "text": "Configured and maintained automated CI/CD pipelines via GitHub Actions, achieving near **zero-downtime deployments** and **restricting server release windows to just 2 minutes** during off-peak traffic."
-          },
-          {
-            "id": "a1b2",
-            "type": "l1",
-            "text": "Spearheaded the **migration of a legacy platform** to a modern Vue 3 and Node.js stack, significantly **improving system scalability and SEO indexing**."
-          },
-          {
-            "id": "a1b3",
-            "type": "l1",
-            "text": "Designed custom semantic search mappings and data normalization workflows to streamline client query processing across the internal database."
+            "text": "Packaged server, website and database in Docker with health checks; backend deploys finish in **under 2 minutes**."
           }
         ]
       }
     ],
     "projects": [
       {
-        "projectName": "Microservices Logistics Dispatch Engine",
-        "projectLink": "",
+        "projectName": "Delivery Dispatch and Routing System (Graduation Thesis)",
+        "projectLink": "https://github.com/hungdev11/Delivery-Coodinating-System-And-Delivery-App",
         "bullets": [
           {
-            "id": "pr1b1",
+            "id": "th-1",
             "type": "l1",
-            "text": "Architected a scalable microservices platform within a strict **2-month MVP timeline**, managing end-to-end system design, RESTful API integrations, and Docker containerization."
+            "text": "**Led a student team** building a logistics platform: API gateway plus user/auth, zone/routing, parcel/session and messaging services (Spring Boot, Node.js/TypeScript, Vue, Keycloak, Docker Compose) and Android driver apps."
           },
           {
-            "id": "pr1b2",
+            "id": "th-2",
             "type": "l1",
-            "text": "Integrated Keycloak as the central **Identity and Access Management (IAM) middleware**, ensuring **secure user segregation and robust API protection**."
-          },
-          {
-            "id": "pr1b3",
-            "type": "l1",
-            "text": "Maximized **delivery routing efficiency** by customizing Dijkstra's algorithm with turn-cost calculations for urban terrains."
+            "text": "Wrote most of the backend and web side outside Android: **OSRM route generation** on local map data, management screens with filtering and pagination, ticket handling, and fixes to the parcel/session flow."
           }
         ]
       }
     ],
     "skills": [
       {
-        "skill": "Languages & Frameworks",
-        "description": "**Python**, **FastAPI**, **ReactJS**, **Vue 3**, **Node.js (Express)**, **C#**, **.NET Core**"
+        "skill": "Backend",
+        "description": "C#, ASP.NET Core, EF Core, Python, FastAPI, Node.js, Express, Prisma, Spring Boot"
       },
       {
-        "skill": "Databases & Authentication",
-        "description": "**MySQL**, **MongoDB**, **PostgreSQL**, **Keycloak (IAM)**, OpenSearch / Semantic Search fundamentals"
+        "skill": "Security & auth",
+        "description": "OAuth 2.1 (PKCE), JWT, Keycloak"
       },
       {
-        "skill": "Infrastructure & CI/CD",
-        "description": "**Docker**, **GitHub Actions (CI pipelines)**, **RabbitMQ**, Nginx, Git, Cloud Native basics"
+        "skill": "Data & messaging",
+        "description": "MySQL/MariaDB, PostgreSQL, Redis, RabbitMQ, GraphQL (HotChocolate)"
       },
       {
-        "skill": "Methodologies & Core Knowledge",
-        "description": "**SOLID principles**, **OOP**, **Design Patterns**, **System Design**, **Unit Testing**, **A/B Testing**, **SDLC**"
+        "skill": "Frontend",
+        "description": "TypeScript, Angular, React, Vue 3"
       },
       {
-        "skill": "Domain Knowledge",
-        "description": "Digital Signal Processing (DSP), Distributed Systems, Internet of Things (IoT), Telecom principles"
+        "skill": "Tooling",
+        "description": "Docker, Docker Compose"
       }
     ],
     "educations": [
       {
         "university": "Posts and Telecommunications Institute of Technology (PTIT)",
-        "degree": "Bachelor of Engineering in Information Technology",
+        "degree": "Bachelor of Engineering in Information Technology, Ho Chi Minh City campus",
         "gpa": "",
-        "graduationDate": "June 2026"
+        "graduationDate": "06/2026"
       }
     ],
     "certificates": [
@@ -129,58 +137,67 @@
         "issuer/description": "IIG Vietnam",
         "certDate": "2025"
       }
-    ]
+    ],
+    "profileImage": null,
+    "profileImageType": null
   },
   "coverLetter": {
     "header": {
       "senderName": "Pham Bui Nam Phuong",
       "senderEmail": "phambuinamphuong@gmail.com",
       "senderPhone": "0942538652",
-      "senderLocation": "Ho Chi Minh City, Viet Nam",
-      "date": "June 23, 2026",
-      "recipientName": "Hiring Manager",
-      "recipientTitle": "Engineering Team",
-      "recipientEmail": "hr@endava.com",
-      "companyName": "Endava",
-      "companyAddress": "Ho Chi Minh City, Viet Nam"
+      "senderLocation": "Ho Chi Minh City, Vietnam",
+      "date": "",
+      "recipientName": "",
+      "recipientTitle": "",
+      "recipientEmail": "",
+      "companyName": "",
+      "companyAddress": ""
     },
-    "greeting": "Dear Hiring Manager,",
-    "openingParagraph": "I am writing to express my strong interest in the **Web Developer** position at Endava to support the CI engine for your **Radio 55G system**. As a software engineer with hands-on experience in **ReactJS**, **FastAPI**, and CI/CD operations, coupled with a deep academic background in **Digital Signal Processing** and **Distributed Systems** from the Posts and Telecommunications Institute of Technology (PTIT), I am highly motivated to bring my technical rigor and domain-relevant mindset to your world-class engineering team.",
+    "greeting": "",
+    "openingParagraph": "",
     "bodyParagraphs": [
-      "Your requirement for an adaptable developer to improve web tools seamlessly aligns with my recent achievements. At PRIMAS CO. LTD, I engineered an automated pipeline utilizing **FastAPI** and **ReactJS** that accelerated content generation by **80%**. Furthermore, during my graduation project, I architected a microservices-based logistics engine where I independently integrated **<u>Keycloak</u>** as the core Identity and Access Management (IAM) middleware. This experience ensures I am fully prepared to handle the authentication and secure service integration demands of your ecosystem.",
-      "Beyond coding, I have a deep appreciation for the operational reliability of CI tools. At Algorit Lab, I configured robust **GitHub Actions** pipelines that achieved near **zero-downtime** deployments. While I am currently transitioning my containerization expertise from **Docker** to **<u>Kubernetes (K8s)</u>**, my solid understanding of Cloud Native principles and my academic foundation in Telecommunications enable me to grasp the complexities of Radio 5G CI engines rapidly. I thrive in Agile environments where taking architectural ownership and continuous troubleshooting are the norms."
+      ""
     ],
-    "closingParagraph": "I am eager to contribute my problem-solving skills and passion for high-performance web development to Endava's cross-functional teams. I would welcome the opportunity to discuss how my hands-on technical stack and telecommunication background can directly benefit your CI engine infrastructure. Thank you for your time and consideration.",
-    "signOff": "Sincerely,\n\nPham Bui Nam Phuong"
+    "closingParagraph": "",
+    "signOff": ""
   },
+  "template": "harvard",
   "language": "English",
-  "selectedFont": "notosans",
+  "sizeMultiplier": 1,
+  "selectedFont": "times",
   "customFontName": "",
-  "sizeMultiplier": 1.0,
+  "sectionsOrder": [
+    "objective",
+    "experience",
+    "projects",
+    "education",
+    "skills",
+    "certificates",
+    "summary"
+  ],
+  "disabledSections": [
+    "summary"
+  ],
+  "experienceHeaderStyle": "one-line",
   "bulletChars": {
     "l1": "•",
     "l2": "◦",
     "l3": "▪"
   },
   "customSectionLabels": {
-    "summary": "Summary",
-    "objective": "Objective",
-    "skills": "Technical Skills",
-    "experience": "Professional Experience",
-    "projects": "Projects",
-    "education": "Education",
-    "certificates": "Certificates"
+    "summary": "",
+    "objective": "",
+    "skills": "",
+    "experience": "",
+    "projects": "",
+    "education": "",
+    "certificates": ""
   },
-  "sectionsOrder": [
-    "summary",
-    "objective",
-    "skills",
-    "experience",
-    "projects",
-    "education",
-    "certificates"
-  ],
-  "disabledSections": [
-    "summary"
-  ]
+  "avatarStyle": {
+    "shape": "rounded",
+    "position": "left",
+    "size": "md",
+    "fit": "cover"
+  }
 }

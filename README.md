@@ -1,31 +1,32 @@
 # CV Editor - Professional Resume & Cover Letter Builder
 
-CV Editor is a modern, privacy-focused, and open-source web application designed to help all students and workers write professional CVs (resumes) and cover letters following a layout very close to the Harvard CV format. Built with Vue 3, Pinia, and Nuxt UI, it provides a real-time PDF rendering preview, size scaling adjustments, profile presets, and an integrated AI Prompt Hub.
+CV Editor is a modern, privacy-focused, and open-source web application designed to help all students and workers write professional CVs (resumes) and cover letters following a layout very close to the Harvard CV format. Built with Vue 3, Pinia, and Nuxt UI, it provides a real-time PDF rendering preview, size scaling adjustments, profile presets, a built-in ATS and AI-slop check, and a hand-off that lets any AI assistant or agent build the CV for you.
 
 No accounts or registrations are required. All editing and state storage are processed locally on the client browser.
 
 ## Core Features
 
-### 1. Dual-Workspace Layout
-- **CV Editor:** A form-based builder supporting experience history, education milestones, project contributions, skills, and certifications.
-- **Cover Letter Editor:** A dedicated workspace to draft matching professional cover letters.
-- **Real-time Previews:** Direct side-by-side rendering of the output page using html2canvas and jsPDF.
+### 1. Harvard-style CV and cover letter
+- **Harvard template (default):** centered name and contact line, left-aligned uppercase section headings with a rule, ORGANIZATION + location / *Position* + dates, hanging-indent bullets, black only. The original layout stays available as **Modern**.
+- **Text-based, ATS-friendly PDF:** Times by default (a standard PDF font: ~8 KB files, clean text extraction). Vietnamese or CJK text switches to an embedded Unicode font automatically.
+- **Live preview with page counter**, section navigator (drag, Alt+Arrow, double-click to rename, hide), per-section writing tips, and a mobile Edit/Preview switch.
+- **Profile photo modes:** square, rounded or circle; left, right or above the name; three sizes; fill (crop) or fit. Any browser-readable image (JPG, PNG with transparency, WebP, GIF, large phone shots) is resized to a small JPEG in the browser.
 
-### 2. AI Prompt Hub & Assistant
-- **STAR Methodology Prompts:** High-quality system prompts tailored for Software Engineers, Business Analysts (BA), Software Quality Control (QC), Product Owners (PO), and Automation Engineers (focused on Factory/Quality or Embedded Systems).
-- **CV Converter:** A system prompt designed to clean and structure raw text profiles or legacy resumes from any industry.
-- **Gemini Gems Integration:** Supports dynamic loading of Gemini Gems share links directly inside the header.
-- **Collapsible Instruction Panel:** A side-by-side instructions guide that can be toggled to maximize the prompt details area.
+### 2. Built-in CV check (no AI, no network)
+ATS parse risks and "AI slop" signals computed from the CV structure: uniform `Label:` bullets, bullet length uniformity, repeated openers, buzzwords, skills claimed but never shown, low-information bullets, mixed date formats, page count, and job-description keyword evidence. Each finding links to the section it concerns. Ported from the cv-slop-ats-editor scanner.
 
-### 3. Presets & Local Profile Storage
-- **Popover Action Menu:** Quick access to load and save states.
-- **Visual Modal Slot cards:** Manage up to 7 drafts concurrently with custom naming options.
-- **JSON Importer:** Paste JSON blocks directly from AI chats to load states immediately.
+### 3. Made for AI assistants and agents
+The site never calls an AI. Users bring their own ChatGPT, Gemini or Claude, or an agent drives the page:
+- **Create with AI** builds a self-contained prompt (task, field, rules, schema, current CV, job description, check results) to paste into any chat.
+- **Hand-off links:** `#cv=<url-encoded JSON>`, `#cv=b64:<base64url>`, `#cv=z:<raw-deflate base64url>` or `#cv-src=<https URL>`; add `&mode=merge` for a patch. The payload sits in the URL fragment and never reaches a server.
+- **Paste or drop anywhere:** Ctrl+V of an AI reply (fenced JSON or a link) or dropping a `.json` file imports it. Every import can be undone.
+- **`window.cvEditor`** for browser agents: `load`, `patch`, `undo`, `audit`, `pageCount`, `pdfBase64`, `downloadPdf`, `shareLink`, `getState`.
+- **Agent Skill:** `skills/cv-editor/` (SKILL.md, references, `scripts/cv_tool.py` with decode / check / link / open / text). `npm run skill` packages it as `public/cv-editor-skill.zip` and mirrors the rules and schema into `public/ai/` (also runs before every build). The site offers the zip in **Create with AI**, with a short request that carries a link to the current CV.
+- **Docs for machines:** [`/llms.txt`](public/llms.txt), [`/ai/cv-writing-rules.md`](public/ai/cv-writing-rules.md), [`/ai/schema.json`](public/ai/schema.json).
 
-### 4. Multi-Format Exports
-- Download print-ready PDF files.
-- Export structured HTML files.
-- Export Microsoft Word compatible DOCX documents.
+### 4. Local storage, presets and exports
+- Autosave in the browser, 7 named preset slots, share links.
+- Export PDF, DOCX (right tab stops instead of layout tables, so ATS reads it in order), HTML and JSON.
 
 ---
 
@@ -36,7 +37,7 @@ No accounts or registrations are required. All editing and state storage are pro
 - **UI Framework:** Nuxt UI v4 (Tailwind CSS theming, modals, drawers, and form controls)
 - **Build System:** Vite
 - **TypeScript:** Typed schemas for CV structures and workspaces
-- **PDF Rendering:** html2canvas & jsPDF
+- **PDF Rendering:** jsPDF text drawing (`src/utils/pdf/renderCv.ts`)
 - **Markdown Compiler:** Marked (for versioned changelogs)
 
 ---
@@ -88,17 +89,10 @@ This project is built to support easy self-hosting, customization, and continuou
 - During development and production builds, Vite reads the package version and automatically bakes it into `import.meta.env.VITE_APP_VERSION` via the `define` block in `vite.config.ts`.
 - In CI/CD pipelines, you can also inject the version manually via the `VITE_APP_VERSION` environment variable.
 
-### 2. Customizing AI Prompts
-All system prompts and Gemini Gems share links are fetched dynamically at runtime.
-- **Directory Location:** `public/prompts/`
-- **Structure:**
-  - `public/prompts/[role_id]/prompts/vi.txt`, `en.txt` (System prompts)
-  - `public/prompts/[role_id]/gems/vi.txt`, `en.txt` (Gems share links)
-- **Adding New Prompts:**
-  - Create a new directory under `public/prompts/[new_role_id]/` and fill the text files.
-  - Register the new role metadata (ID, icon, title, description, instructions) in the `promptList` array in `src/prompts/index.ts`.
-- **Dynamic Visibility:**
-  - If a Gems link file or a specific language prompt is empty or missing, the corresponding button (Gems pill, copy link, language toggle) is hidden from the user interface instead of showing a placeholder.
+### 2. Customizing the AI hand-off
+- Prompt text and field presets: `src/utils/aiPrompt.ts`.
+- Instructions for agents: `public/llms.txt`, `public/ai/cv-writing-rules.md`, `public/ai/schema.json`. These are static files; edit them on the host without a rebuild.
+- Check heuristics and the editable word lists: `src/utils/cvAudit.ts`.
 
 ### 3. Modifying Changelogs
 Changelogs are stored as versioned Markdown files and loaded on demand:

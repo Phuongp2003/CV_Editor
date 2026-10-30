@@ -1,6 +1,6 @@
 {
   "name": "cv-editor",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,7 +11,9 @@
     "test:e2e": "playwright test",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "format": "prettier --write --experimental-cli src/"
+    "format": "prettier --write --experimental-cli src/",
+    "skill": "node scripts/build-skill.mjs",
+    "prebuild": "node scripts/build-skill.mjs"
   },
   "dependencies": {
     "@nuxt/ui": "^4.8.2",
@@ -35,6 +37,7 @@
     "@vitejs/plugin-vue-jsx": "^5.1.5",
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.9.1",
+    "fflate": "^0.8.3",
     "jsdom": "^29.0.2",
     "npm-run-all2": "^8.0.4",
     "prettier": "3.8.3",

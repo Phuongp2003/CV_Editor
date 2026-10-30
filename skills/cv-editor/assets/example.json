@@ -1,0 +1,87 @@
+{
+  "_note": "FICTIONAL example. Copy the shape, never the facts.",
+  "cv": {
+    "name": "Linh Tran",
+    "email": "linh.tran@example.com",
+    "phone": "+84 900 000 000",
+    "location": "Ho Chi Minh City, Vietnam",
+    "linkedin": "https://linkedin.com/in/example-linh",
+    "linkedin_placeholder": "linkedin.com/in/example-linh",
+    "github": "https://github.com/example-linh",
+    "github_placeholder": "github.com/example-linh",
+    "website": "",
+    "website_placeholder": "",
+    "summary": "",
+    "objective": "**Backend developer** with **3 years** in **C# and ASP.NET Core** on SQL Server, building internal tools for a logistics company. Cut invoice export time from **40 minutes to 3**. Available immediately.",
+    "experiences": [
+      {
+        "position": "Software Engineer",
+        "company": "Example Logistics JSC",
+        "location": "Ho Chi Minh City, Vietnam",
+        "dates": "03/2024 - Present",
+        "bullets": [
+          { "id": "e1-h", "type": "header", "text": "Warehouse and billing back office (ASP.NET Core 8, EF Core, SQL Server, React)." },
+          { "id": "e1-1", "type": "l1", "text": "Cut monthly invoice export from **40 minutes to 3** by replacing per-row EF Core saves with one batched stored procedure." },
+          { "id": "e1-2", "type": "l1", "text": "Built the **shipment tracking API** (REST, 14 endpoints) used by the mobile app and two partner carriers." },
+          { "id": "e1-3", "type": "l1", "text": "Added xUnit tests around pricing rules after a rounding bug overcharged 120 orders; the rules now have **85% line coverage**." },
+          { "id": "e1-4", "type": "l1", "text": "Moved nightly reports to a Hangfire queue so the API no longer times out at 2 a.m." }
+        ]
+      },
+      {
+        "position": "Software Engineer Intern",
+        "company": "Example Logistics JSC",
+        "location": "Ho Chi Minh City, Vietnam",
+        "dates": "09/2023 - 02/2024",
+        "bullets": [
+          { "id": "e2-1", "type": "l1", "text": "Built the **barcode label printer** integration for two warehouses (C#, ZPL), replacing hand-written labels on about 2,000 parcels a day." }
+        ]
+      },
+      {
+        "position": "Junior Web Developer",
+        "company": "Sample Studio",
+        "location": "Ho Chi Minh City, Vietnam",
+        "dates": "06/2022 - 08/2023",
+        "bullets": [
+          { "id": "e3-1", "type": "l1", "text": "Shipped 6 client sites in Next.js with a headless CMS; median **LCP 1.4s** on mobile." },
+          { "id": "e3-2", "type": "l1", "text": "Replaced FTP uploads with a Docker + GitHub Actions deployment that all 6 projects adopted; a release became **one push**." }
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "projectName": "Bus Arrival Bot",
+        "projectLink": "https://github.com/example-linh/bus-bot",
+        "bullets": [
+          { "id": "p1-1", "type": "l1", "text": "Telegram bot answering next-bus questions from the city's open data feed; about 300 weekly users." }
+        ]
+      }
+    ],
+    "skills": [
+      { "skill": "Backend", "description": "C#, ASP.NET Core, EF Core, SQL Server, stored procedures, REST APIs, xUnit, Hangfire" },
+      { "skill": "Frontend", "description": "React, Next.js" },
+      { "skill": "Tools", "description": "Docker, GitHub Actions" }
+    ],
+    "educations": [
+      { "university": "Example University of Technology", "degree": "Bachelor of Engineering in Computer Science", "gpa": "", "graduationDate": "06/2023" }
+    ],
+    "certificates": [
+      { "certName": "IELTS 7.0", "issuer/description": "British Council", "certDate": "2023" }
+    ],
+    "profileImage": null,
+    "profileImageType": null
+  },
+  "coverLetter": {
+    "header": { "senderName": "Linh Tran", "senderEmail": "linh.tran@example.com", "senderPhone": "+84 900 000 000", "senderLocation": "Ho Chi Minh City, Vietnam", "date": "", "recipientName": "", "recipientTitle": "", "recipientEmail": "", "companyName": "", "companyAddress": "" },
+    "greeting": "",
+    "openingParagraph": "",
+    "bodyParagraphs": [""],
+    "closingParagraph": "",
+    "signOff": ""
+  },
+  "template": "harvard",
+  "language": "English",
+  "selectedFont": "times",
+  "experienceHeaderStyle": "one-line",
+  "sectionsOrder": ["objective", "experience", "projects", "education", "skills", "certificates", "summary"],
+  "disabledSections": ["summary"]
+}

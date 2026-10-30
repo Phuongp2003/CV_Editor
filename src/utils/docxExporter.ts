@@ -5,14 +5,20 @@ import {
   TextRun,
   AlignmentType,
   BorderStyle,
-  Table,
-  TableRow,
-  TableCell,
-  WidthType,
   ExternalHyperlink,
+  TabStopType,
+  TabStopPosition,
 } from 'docx'
 import type { CVData, CoverLetterData } from '@/types/cv'
 import { cleanUrl, parseRichText } from '@/utils/richText'
+
+/** Maps the PDF font choice to a font Word is likely to have. */
+function docxFontName(selectedFont: string, customFontName?: string): string {
+  if (selectedFont === 'arial') return 'Arial'
+  if (selectedFont === 'custom' && customFontName?.trim()) return customFontName.trim()
+  if (selectedFont === 'garamond' || selectedFont === 'notosans') return 'Garamond'
+  return 'Times New Roman'
+}
 
 const DEFAULT_LABELS = {
   summary: 'Summary',
@@ -44,8 +50,10 @@ interface ExportDocxOptions {
   customFontName?: string
   /** Bullet list bullet chars overrides. */
   bulletChars?: { l1: string; l2: string; l3: string }
-  /** Experience section header style selection ('classic' | 'role-company'). */
-  experienceHeaderStyle?: 'classic' | 'role-company'
+  /** Experience header layout; one-line = COMPANY | Title + dates, no location. */
+  experienceHeaderStyle?: 'classic' | 'role-company' | 'one-line'
+  /** 'harvard' uses a thin black rule under headings; 'modern' a thicker grey one. */
+  template?: 'harvard' | 'modern'
   /** Typography sizing overrides. */
   typography: {
     /** Font size for normal body text in points. */
@@ -87,48 +95,14 @@ function createRichTextRuns(
 }
 
 /**
- * Generates a borderless table layout to support two-column formatting.
- * Left aligned block takes 70% width, right aligned block takes 30% width.
- *
- * @param params - Left and right paragraphs to arrange.
- * @returns A docx {@link Table} block.
+ * One line with runs on the left and runs pushed to the right margin by a right-aligned tab stop.
+ * Word's own resume templates do this; ATS parsers read it in order, unlike layout tables.
  */
-function createTwoColumnHeader({
-  leftChildren,
-  rightChildren,
-}: {
-  leftChildren: any[]
-  rightChildren: any[]
-}): Table {
-  return new Table({
-    width: {
-      size: 100,
-      type: WidthType.PERCENTAGE,
-    },
-    borders: {
-      top: { style: BorderStyle.NONE, size: 0, color: 'auto' },
-      bottom: { style: BorderStyle.NONE, size: 0, color: 'auto' },
-      left: { style: BorderStyle.NONE, size: 0, color: 'auto' },
-      right: { style: BorderStyle.NONE, size: 0, color: 'auto' },
-      insideHorizontal: { style: BorderStyle.NONE, size: 0, color: 'auto' },
-      insideVertical: { style: BorderStyle.NONE, size: 0, color: 'auto' },
-    },
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({
-            width: { size: 70, type: WidthType.PERCENTAGE },
-            margins: { top: 0, bottom: 0, left: 0, right: 0 },
-            children: leftChildren,
-          }),
-          new TableCell({
-            width: { size: 30, type: WidthType.PERCENTAGE },
-            margins: { top: 0, bottom: 0, left: 0, right: 0 },
-            children: rightChildren,
-          }),
-        ],
-      }),
-    ],
+function createTabbedLine(leftRuns: any[], rightRuns: any[], after: number): Paragraph {
+  return new Paragraph({
+    spacing: { after },
+    tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+    children: rightRuns.length ? [...leftRuns, new TextRun({ text: '	' }), ...rightRuns] : leftRuns,
   })
 }
 
@@ -153,6 +127,7 @@ export async function exportDocx({
   bulletChars = { l1: '•', l2: '◦', l3: '▪' },
   typography,
   experienceHeaderStyle = 'classic',
+  template = 'harvard',
 }: ExportDocxOptions): Promise<Blob> {
   const resolvedLabels = { ...DEFAULT_LABELS, ...labels }
   const bodySize = typography.body * 2
@@ -160,12 +135,8 @@ export async function exportDocx({
   const titleSize = typography.title * 2
 
   // Map font name
-  let fontName = 'Noto Sans'
-  if (selectedFont === 'arial') {
-    fontName = 'Arial'
-  } else if (selectedFont === 'custom' && customFontName) {
-    fontName = customFontName.trim()
-  }
+  const fontName = docxFontName(selectedFont, customFontName)
+  const harvard = template === 'harvard'
 
   const children: any[] = []
 
@@ -314,12 +285,13 @@ export async function exportDocx({
     children.push(
       new Paragraph({
         spacing: { before: 240, after: 100 },
+        alignment: AlignmentType.LEFT,
         border: {
           bottom: {
-            color: '333333',
+            color: harvard ? '000000' : '333333',
             space: 4,
             style: BorderStyle.SINGLE,
-            size: 12, // 1.5pt bottom border matching PDF
+            size: harvard ? 6 : 12,
           },
         },
         children: [
@@ -401,7 +373,14 @@ export async function exportDocx({
             children.push(new Paragraph({ spacing: { before: 120 } }))
           }
 
-          if (experienceHeaderStyle === 'role-company') {
+          if (experienceHeaderStyle === 'one-line') {
+            const leftRuns = []
+            if (companyStr) leftRuns.push(new TextRun({ text: companyStr.toUpperCase(), bold: true, font: fontName, size: bodySize }))
+            if (companyStr && posStr) leftRuns.push(new TextRun({ text: '  |  ', font: fontName, size: bodySize }))
+            if (posStr) leftRuns.push(new TextRun({ text: posStr, italics: true, font: fontName, size: bodySize }))
+            const rightRuns = datesStr ? [new TextRun({ text: datesStr, font: fontName, size: bodySize })] : []
+            children.push(createTabbedLine(leftRuns, rightRuns, 40))
+          } else if (experienceHeaderStyle === 'role-company') {
             const leftRuns = []
             if (posStr) {
               leftRuns.push(
@@ -439,21 +418,7 @@ export async function exportDocx({
             }
 
             children.push(
-              createTwoColumnHeader({
-                leftChildren: [
-                  new Paragraph({
-                    spacing: { after: 40 },
-                    children: leftRuns,
-                  }),
-                ],
-                rightChildren: [
-                  new Paragraph({
-                    alignment: AlignmentType.RIGHT,
-                    spacing: { after: 40 },
-                    children: rightRuns,
-                  }),
-                ],
-              }),
+              createTabbedLine(leftRuns, rightRuns, 40),
             )
           } else {
             // Classic style
@@ -496,21 +461,7 @@ export async function exportDocx({
             }
 
             children.push(
-              createTwoColumnHeader({
-                leftChildren: [
-                  new Paragraph({
-                    spacing: { after: 40 },
-                    children: leftRuns,
-                  }),
-                ],
-                rightChildren: [
-                  new Paragraph({
-                    alignment: AlignmentType.RIGHT,
-                    spacing: { after: 40 },
-                    children: rightRuns,
-                  }),
-                ],
-              }),
+              createTabbedLine(leftRuns, rightRuns, 40),
             )
 
             // Position line below header
@@ -626,21 +577,7 @@ export async function exportDocx({
           }
 
           children.push(
-            createTwoColumnHeader({
-              leftChildren: [
-                new Paragraph({
-                  spacing: { after: 60 },
-                  children: leftRuns,
-                }),
-              ],
-              rightChildren: [
-                new Paragraph({
-                  alignment: AlignmentType.RIGHT,
-                  spacing: { after: 60 },
-                  children: rightRuns,
-                }),
-              ],
-            }),
+            createTabbedLine(leftRuns, rightRuns, 60),
           )
 
           // Bullets
@@ -741,21 +678,7 @@ export async function exportDocx({
           }
 
           children.push(
-            createTwoColumnHeader({
-              leftChildren: [
-                new Paragraph({
-                  spacing: { after: 40 },
-                  children: leftRuns,
-                }),
-              ],
-              rightChildren: [
-                new Paragraph({
-                  alignment: AlignmentType.RIGHT,
-                  spacing: { after: 40 },
-                  children: rightRuns,
-                }),
-              ],
-            }),
+            createTabbedLine(leftRuns, rightRuns, 40),
           )
 
           // Degree and GPA line
@@ -822,21 +745,7 @@ export async function exportDocx({
           }
 
           children.push(
-            createTwoColumnHeader({
-              leftChildren: [
-                new Paragraph({
-                  spacing: { after: 40 },
-                  children: leftRuns,
-                }),
-              ],
-              rightChildren: [
-                new Paragraph({
-                  alignment: AlignmentType.RIGHT,
-                  spacing: { after: 40 },
-                  children: rightRuns,
-                }),
-              ],
-            }),
+            createTabbedLine(leftRuns, rightRuns, 40),
           )
 
           // Issuer line below
@@ -928,12 +837,7 @@ export async function exportCoverLetterDocx({
   const titleHeaderSize = (titlePt + 2) * 2
 
   // Map font name
-  let fontName = 'Noto Sans'
-  if (selectedFont === 'arial') {
-    fontName = 'Arial'
-  } else if (selectedFont === 'custom' && customFontName) {
-    fontName = customFontName.trim()
-  }
+  const fontName = docxFontName(selectedFont, customFontName)
 
   const children: any[] = []
 

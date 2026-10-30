@@ -11,8 +11,12 @@ import type {
   Experience,
   Project,
   CoverLetterData,
+  CvTemplate,
+  AvatarStyle,
+  ExperienceHeaderStyle,
 } from '@/types/cv'
-import { DEFAULT_SECTIONS_ORDER } from '@/types/cv'
+import { DEFAULT_SECTIONS_ORDER, DEFAULT_AVATAR_STYLE } from '@/types/cv'
+import { normalizeFontChoice } from '@/utils/fonts'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -207,7 +211,7 @@ export const useCVStore = defineStore('cv', () => {
   /** General scaling multiplier for fonts and margins in output PDF/DOCX files. */
   const sizeMultiplier = ref(Number(getLocal('cv_sizeMultiplier', '1.0')))
   /** Font family selection. Defaults to 'notosans'. */
-  const selectedFont = ref(getLocal('cv_selectedFont', 'notosans'))
+  const selectedFont = ref<string>(normalizeFontChoice(getLocal('cv_selectedFont', 'times')))
   /** Optional custom font family name to render in PDF/DOCX (system fonts). */
   const customFontName = ref(getLocal('cv_customFontName', ''))
   /** Target language of the CV contents. */
@@ -221,8 +225,19 @@ export const useCVStore = defineStore('cv', () => {
   const sectionsOrder = ref<SectionKey[]>(getLocalJson<SectionKey[]>('cv_sectionsOrder', [...DEFAULT_SECTIONS_ORDER]))
   /** List of hidden CV sections. */
   const disabledSections = ref<SectionKey[]>(getLocalJson<SectionKey[]>('cv_disabledSections', ['summary']))
-  /** Experience section header style selection ('classic' | 'role-company'). */
-  const experienceHeaderStyle = ref<'classic' | 'role-company'>(getLocal('cv_experienceHeaderStyle', 'classic') as 'classic' | 'role-company')
+  /** Experience header layout ('classic' | 'role-company' | 'one-line'). */
+  const experienceHeaderStyle = ref<ExperienceHeaderStyle>(getLocal('cv_experienceHeaderStyle', 'classic') as ExperienceHeaderStyle)
+  /** PDF layout: 'harvard' (centered headings, serif, ragged-right) or 'modern' (the original layout). */
+  const template = ref<CvTemplate>((getLocal('cv_template', 'harvard') as CvTemplate) || 'harvard')
+  /** Target job description, used by the CV check for keyword evidence. */
+  const jobDescription = ref(getLocal('cv_jobDescription', ''))
+  /** Page count of the last rendered PDF (filled by the renderer). */
+  const pdfPageCount = ref(0)
+  watch(template, (val) => setLocal('cv_template', val))
+  /** Profile photo shape / position / size / fit. */
+  const avatarStyle = ref<AvatarStyle>({ ...DEFAULT_AVATAR_STYLE, ...getLocalJson<Partial<AvatarStyle>>('cv_avatarStyle', {}) })
+  watch(avatarStyle, (val) => setLocal('cv_avatarStyle', JSON.stringify(val)), { deep: true })
+  watch(jobDescription, (val) => setLocal('cv_jobDescription', val))
 
   let prevHasSummary = !disabledSections.value.includes('summary')
   let prevHasObjective = !disabledSections.value.includes('objective')
@@ -351,14 +366,18 @@ export const useCVStore = defineStore('cv', () => {
       profileImageType: (source.profileImageType as string | null) ?? null,
     }
 
+    if (data.template === 'harvard' || data.template === 'modern') template.value = data.template
+    if (data.avatarStyle && typeof data.avatarStyle === 'object') {
+      avatarStyle.value = { ...DEFAULT_AVATAR_STYLE, ...(data.avatarStyle as Partial<AvatarStyle>) }
+    }
     if (data.language) language.value = data.language as string
     if (data.sizeMultiplier) sizeMultiplier.value = Number(data.sizeMultiplier)
-    if (data.selectedFont) selectedFont.value = data.selectedFont as string
+    if (data.selectedFont) selectedFont.value = normalizeFontChoice(data.selectedFont as string)
     if (data.editorMode && (data.editorMode === 'tabs' || data.editorMode === 'outline')) {
       editorMode.value = data.editorMode as EditorMode
     }
-    if (data.experienceHeaderStyle && (data.experienceHeaderStyle === 'classic' || data.experienceHeaderStyle === 'role-company')) {
-      experienceHeaderStyle.value = data.experienceHeaderStyle as 'classic' | 'role-company'
+    if (['classic', 'role-company', 'one-line'].includes(data.experienceHeaderStyle as string)) {
+      experienceHeaderStyle.value = data.experienceHeaderStyle as ExperienceHeaderStyle
     } else {
       experienceHeaderStyle.value = 'classic'
     }
@@ -546,6 +565,87 @@ export const useCVStore = defineStore('cv', () => {
     return !!collapsedItems.value[key]
   }
 
+  /** Full, importable snapshot of everything the CV and cover letter need. */
+  function exportState(): Record<string, unknown> {
+    return JSON.parse(
+      JSON.stringify({
+        cv: cvData.value,
+        coverLetter: coverLetterData.value,
+        template: template.value,
+        avatarStyle: avatarStyle.value,
+        language: language.value,
+        sizeMultiplier: sizeMultiplier.value,
+        selectedFont: selectedFont.value,
+        customFontName: customFontName.value,
+        sectionsOrder: sectionsOrder.value,
+        disabledSections: disabledSections.value,
+        experienceHeaderStyle: experienceHeaderStyle.value,
+        bulletChars: bulletChars.value,
+        customSectionLabels: customSectionLabels.value,
+      }),
+    )
+  }
+
+  /** Previous state kept so an outside import (AI link, paste, API) can be undone once. */
+  const undoSnapshot = ref<Record<string, unknown> | null>(null)
+
+  /**
+   * Applies data that came from outside the editor.
+   * 'merge' treats the payload as a patch: given cv fields replace current ones, the rest stay.
+   */
+  function applyExternal(data: Record<string, unknown>, mode: 'replace' | 'merge' = 'replace') {
+    const before = exportState()
+    undoSnapshot.value = before
+    if (mode === 'replace') {
+      loadCv(data)
+      return
+    }
+    const patchCv = (data.cv ?? (('name' in data || 'experiences' in data) ? data : null)) as
+      | Record<string, unknown>
+      | null
+    const patchCl = data.coverLetter as Record<string, any> | undefined
+    const beforeCl = before.coverLetter as Record<string, any>
+    const merged: Record<string, unknown> = {
+      ...before,
+      ...data,
+      cv: { ...(before.cv as object), ...(patchCv ?? {}) },
+      coverLetter: patchCl
+        ? { ...beforeCl, ...patchCl, header: { ...beforeCl.header, ...(patchCl.header ?? {}) } }
+        : beforeCl,
+    }
+    loadCv(merged)
+  }
+
+  function undoExternal() {
+    if (!undoSnapshot.value) return
+    loadCv(undoSnapshot.value)
+    undoSnapshot.value = null
+  }
+
+  // Autosave: a refresh must never lose the user's CV.
+  const AUTOSAVE_KEY = 'cv_autosave_v1'
+  let autosaveTimer: ReturnType<typeof setTimeout> | null = null
+  watch(
+    [cvData, coverLetterData],
+    () => {
+      if (autosaveTimer) clearTimeout(autosaveTimer)
+      autosaveTimer = setTimeout(() => setLocal(AUTOSAVE_KEY, JSON.stringify(exportState())), 500)
+    },
+    { deep: true },
+  )
+
+  function restoreAutosave(): boolean {
+    const saved = getLocalJson<Record<string, unknown> | null>(AUTOSAVE_KEY, null)
+    if (!saved) return false
+    loadCv(saved)
+    return true
+  }
+
+  function hasContent(): boolean {
+    const c = cvData.value
+    return !!(c.name || c.experiences.some((e) => e.company || e.position || e.bullets.length))
+  }
+
   async function loadSample() {
     try {
       const baseUrl = import.meta.env.BASE_URL || '/'
@@ -583,6 +683,16 @@ export const useCVStore = defineStore('cv', () => {
     customSectionLabels,
     downloadTrigger,
     pdfBlob,
+    template,
+    avatarStyle,
+    jobDescription,
+    pdfPageCount,
+    undoSnapshot,
+    exportState,
+    applyExternal,
+    undoExternal,
+    restoreAutosave,
+    hasContent,
     loadCv,
     loadSample,
     updateSectionLabel,

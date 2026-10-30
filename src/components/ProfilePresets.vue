@@ -29,7 +29,7 @@ interface ProfilePreset {
   customSectionLabels: Record<string, string>
   disabledSections: SectionKey[]
   sectionsOrder: SectionKey[]
-  experienceHeaderStyle?: 'classic' | 'role-company'
+  experienceHeaderStyle?: 'classic' | 'role-company' | 'one-line'
 }
 
 const STORAGE_KEY = 'profileData'

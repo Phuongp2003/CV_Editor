@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cv-editor.fynx.io.vn/ai/schema.json",
+  "title": "CV Editor payload",
+  "description": "Import payload for https://cv-editor.fynx.io.vn/. All top-level keys are optional; in merge mode only the keys you send change. Writing rules: https://cv-editor.fynx.io.vn/ai/cv-writing-rules.md",
+  "type": "object",
+  "properties": {
+    "cv": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "location": { "type": "string", "description": "City, Country" },
+        "linkedin": { "type": "string", "description": "Full URL" },
+        "linkedin_placeholder": { "type": "string", "description": "Short display text, e.g. linkedin.com/in/name" },
+        "github": { "type": "string", "description": "Full URL" },
+        "github_placeholder": { "type": "string" },
+        "website": { "type": "string", "description": "Full URL" },
+        "website_placeholder": { "type": "string" },
+        "objective": { "type": "string", "description": "Two lines max. Enable objective OR summary, not both." },
+        "summary": { "type": "string" },
+        "experiences": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "position": { "type": "string" },
+              "company": { "type": "string" },
+              "location": { "type": "string" },
+              "dates": { "type": "string", "description": "One format everywhere, e.g. 07/2025 - Present" },
+              "bullets": { "$ref": "#/$defs/bullets" }
+            },
+            "required": ["position", "company", "dates", "bullets"]
+          }
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "projectName": { "type": "string" },
+              "projectLink": { "type": "string" },
+              "bullets": { "$ref": "#/$defs/bullets" }
+            },
+            "required": ["projectName", "bullets"]
+          }
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "skill": { "type": "string", "description": "Group name, e.g. Backend" },
+              "description": { "type": "string", "description": "Comma-separated items, target stack first" }
+            },
+            "required": ["skill", "description"]
+          }
+        },
+        "educations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "university": { "type": "string" },
+              "degree": { "type": "string" },
+              "gpa": { "type": "string" },
+              "graduationDate": { "type": "string" }
+            }
+          }
+        },
+        "certificates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "certName": { "type": "string" },
+              "issuer/description": { "type": "string" },
+              "certDate": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "coverLetter": {
+      "type": "object",
+      "properties": {
+        "header": {
+          "type": "object",
+          "properties": {
+            "senderName": { "type": "string" },
+            "senderEmail": { "type": "string" },
+            "senderPhone": { "type": "string" },
+            "senderLocation": { "type": "string" },
+            "date": { "type": "string" },
+            "recipientName": { "type": "string" },
+            "recipientTitle": { "type": "string" },
+            "recipientEmail": { "type": "string" },
+            "companyName": { "type": "string" },
+            "companyAddress": { "type": "string" }
+          }
+        },
+        "greeting": { "type": "string" },
+        "openingParagraph": { "type": "string" },
+        "bodyParagraphs": { "type": "array", "items": { "type": "string" } },
+        "closingParagraph": { "type": "string" },
+        "signOff": { "type": "string" }
+      }
+    },
+    "template": { "enum": ["harvard", "modern"], "default": "harvard" },
+    "experienceHeaderStyle": {
+      "enum": ["classic", "role-company", "one-line"],
+      "description": "classic: COMPANY + location / Title + dates on two lines. one-line: COMPANY | Title + dates, no location."
+    },
+    "language": { "enum": ["English", "Vietnamese", "Japanese", "Korean", "Chinese"] },
+    "sectionsOrder": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/section" },
+      "description": "Render order. Harvard early-career: objective, education, experience, projects, skills, certificates."
+    },
+    "disabledSections": { "type": "array", "items": { "$ref": "#/$defs/section" } }
+  },
+  "$defs": {
+    "section": { "enum": ["summary", "objective", "skills", "experience", "projects", "education", "certificates"] },
+    "bullets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Any short unique string" },
+          "type": { "enum": ["l1", "l2", "l3", "header"], "default": "l1" },
+          "text": { "type": "string", "description": "Supports **bold**, *italic*, <u>underline</u>. Bold 1-2 key phrases; no bold Label: prefix on every bullet." }
+        },
+        "required": ["type", "text"]
+      }
+    }
+  }
+}

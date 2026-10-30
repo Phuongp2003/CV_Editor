@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useToast } from '@nuxt/ui/composables'
 import { useI18n } from '@/composables/useI18n'
 import { useCVStore } from '@/stores/cv'
-import { usePromptsStore } from '@/stores/prompts'
+import { useAudit } from '@/composables/useAudit'
+import { useImport } from '@/composables/useImport'
+import { installAgentApi } from '@/utils/agentApi'
+import { buildShareLink, looksLikeCvJson, findHandoffLink } from '@/utils/handoff'
+import type { AiTask } from '@/utils/aiPrompt'
 import CVEditor from '@/components/CVEditor.vue'
 import CVPlayer from '@/components/CVPlayer'
 import CoverLetterEditor from '@/components/editor/CoverLetterEditor.vue'
@@ -10,306 +15,211 @@ import CoverLetterPlayer from '@/components/CVPlayer/CoverLetterPlayer.vue'
 import SettingsDrawer from '@/components/SettingsDrawer.vue'
 import ProfilePresets from '@/components/ProfilePresets.vue'
 import ImportModal from '@/components/ImportModal.vue'
-import { PromptHubModal } from '@/components/prompts'
+import DownloadMenu from '@/components/DownloadMenu.vue'
+import AiHandoff from '@/components/AiHandoff.vue'
+import CheckPanel from '@/components/CheckPanel.vue'
+import Welcome from '@/components/Welcome.vue'
 
 const store = useCVStore()
-const promptsStore = usePromptsStore()
+const { t } = useI18n()
+const toast = useToast()
+const { result: audit, scoreColor } = useAudit()
+const { importText, importFromLocation } = useImport()
+
 const isSettingsOpen = ref(false)
 const isImportOpen = ref(false)
 const isPresetOpen = ref(false)
 const presetMode = ref<'load' | 'save'>('load')
+const isAiOpen = ref(false)
+const aiTask = ref<AiTask | undefined>()
+const isCheckOpen = ref(false)
+const startedBlank = ref(false)
+const mobilePane = ref<'edit' | 'preview'>('edit')
+const isDragging = ref(false)
 
-const { t } = useI18n()
+const showWelcome = computed(
+  () => store.activeWorkspace === 'cv' && !startedBlank.value && !store.hasContent(),
+)
 
-function openPresetModal(mode: 'load' | 'save') {
+function openAi(task?: AiTask) {
+  aiTask.value = task
+  isCheckOpen.value = false
+  isAiOpen.value = true
+}
+
+function openPresets(mode: 'load' | 'save') {
   presetMode.value = mode
   isPresetOpen.value = true
 }
 
-// Custom UI theme overrides for UNavigationMenu to align height/padding nicely
-// Restored to a spacious 2-column layout to match hehe.html and avoid clipping
-const customUi = {
-  link: 'px-3 py-1.5 text-xs font-semibold rounded-lg text-theme-text-sub hover:text-theme-text hover:bg-theme-hover/50 flex items-center gap-1.5 transition-colors',
-  content: 'bg-theme-card border border-theme-border rounded-xl shadow-2xl p-1.5 z-50 text-theme-text-sub',
-  linkLabel: 'text-xs font-bold',
-  childList: 'isolate grid gap-2 grid-cols-1 p-1.5',
-  childLink: 'p-2 rounded-lg hover:bg-theme-hover flex items-start gap-2.5 transition-colors',
-  childLinkLabel: 'text-xs font-extrabold text-theme-text block',
-  childLinkDescription: 'text-[10px] text-theme-text-muted mt-0.5 leading-relaxed font-medium block'
+async function copyShareLink() {
+  const link = await buildShareLink(store.exportState())
+  await navigator.clipboard.writeText(link)
+  toast.add({ title: t('share_copied'), description: t('share_copied_desc'), icon: 'i-lucide-link', color: 'success' })
 }
 
-// Navigation menu items for AI and Simple version
-const navItems = computed(() => {
-  const isVi = store.uiLanguage === 'Vietnamese'
+const moreItems = computed(() => [
+  [
+    { label: t('import_file'), icon: 'i-lucide-file-up', onSelect: () => (isImportOpen.value = true) },
+    { label: t('share_link'), icon: 'i-lucide-link', onSelect: copyShareLink },
+  ],
+  [
+    { label: t('preset_save'), icon: 'i-lucide-save', onSelect: () => openPresets('save') },
+    { label: t('preset_load_menu'), icon: 'i-lucide-folder-open', onSelect: () => openPresets('load') },
+    { label: t('reset_sample'), icon: 'i-lucide-file-text', onSelect: () => store.loadSample() },
+  ],
+  [
+    {
+      label: store.uiLanguage === 'Vietnamese' ? 'English interface' : 'Giao diện tiếng Việt',
+      icon: 'i-lucide-languages',
+      onSelect: () => (store.uiLanguage = store.uiLanguage === 'Vietnamese' ? 'English' : 'Vietnamese'),
+    },
+    { label: t('simple_version'), icon: 'i-lucide-external-link', to: '/simple/', target: '_blank' },
+    { label: t('about_menu'), icon: 'i-lucide-info', onSelect: () => (isSettingsOpen.value = true) },
+  ],
+])
 
-  return [
-    [
-      {
-        label: isVi ? 'Trợ lý AI (Gems)' : 'AI Assistants (Gems)',
-        icon: 'i-lucide-sparkles',
-        children: [
-          {
-            label: isVi ? 'Mở AI Prompt Hub' : 'Open AI Prompt Hub',
-            description: isVi ? 'Xem toàn bộ hướng dẫn, prompt và link Gems' : 'View all guidelines, prompts and Gems links',
-            icon: 'i-lucide-cpu',
-            onSelect: () => {
-              promptsStore.openModal()
-            }
-          },
-          {
-            label: isVi ? 'Đánh giá CV (Software Engineer)' : 'Software Engineer Assistant',
-            description: isVi ? 'Đánh giá CV theo JD cho nhà phát triển' : 'Evaluate CV against JD for developers',
-            icon: 'i-lucide-code',
-            onSelect: () => {
-              promptsStore.openModal('se')
-            }
-          },
-          {
-            label: isVi ? 'Đánh giá CV (Business Analyst)' : 'Business Analyst Assistant',
-            description: isVi ? 'Hỗ trợ viết CV theo JD cho BA' : 'Tailor CV against JD for Business Analysts',
-            icon: 'i-lucide-presentation',
-            onSelect: () => {
-              promptsStore.openModal('ba')
-            }
-          },
-          {
-            label: isVi ? 'Đánh giá CV (Quality Control)' : 'Quality Control Assistant',
-            description: isVi ? 'Hỗ trợ viết CV theo JD cho QC' : 'Tailor CV against JD for Quality Control',
-            icon: 'i-lucide-shield-check',
-            onSelect: () => {
-              promptsStore.openModal('qc')
-            }
-          },
-          {
-            label: isVi ? 'Đánh giá CV (Product Owner)' : 'Product Owner Assistant',
-            description: isVi ? 'Hỗ trợ viết CV theo JD cho PO/PM' : 'Tailor CV against JD for Product Owners',
-            icon: 'i-lucide-rocket',
-            onSelect: () => {
-              promptsStore.openModal('po')
-            }
-          },
-          {
-            label: isVi ? 'Viết CV từ CV khác' : 'CV Converter',
-            description: isVi ? 'Chuyển đổi dữ liệu CV cũ/thô thành mẫu chuẩn' : 'Convert raw or old CV text to standard format',
-            icon: 'i-lucide-refresh-cw',
-            onSelect: () => {
-              promptsStore.openModal('convert')
-            }
-          }
-        ]
-      },
-      {
-        label: isVi ? 'Bản rút gọn' : 'Simple Version',
-        icon: 'i-lucide-external-link',
-        to: '/simple/',
-        target: '_blank'
-      }
-    ]
-  ]
+// ── Paste / drop anywhere to import an AI reply or a JSON file ──
+function isEditable(el: EventTarget | null) {
+  const e = el as HTMLElement | null
+  return !!e && (e.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.tagName))
+}
+
+function onPaste(e: ClipboardEvent) {
+  if (isEditable(e.target)) return
+  const text = e.clipboardData?.getData('text') || ''
+  if (!looksLikeCvJson(text) && !findHandoffLink(text)) return
+  e.preventDefault()
+  importText(text)
+}
+
+function onDragOver(e: DragEvent) {
+  if (e.dataTransfer?.types.includes('Files')) {
+    e.preventDefault()
+    isDragging.value = true
+  }
+}
+
+async function onDrop(e: DragEvent) {
+  isDragging.value = false
+  const file = e.dataTransfer?.files?.[0]
+  if (!file) return
+  e.preventDefault()
+  importText(await file.text())
+}
+
+function onHashChange() {
+  if (/^#cv(-src)?=/.test(window.location.hash)) importFromLocation()
+}
+
+onMounted(async () => {
+  installAgentApi(store)
+  const fromLink = await importFromLocation()
+  if (!fromLink) store.restoreAutosave()
+  window.addEventListener('paste', onPaste)
+  window.addEventListener('hashchange', onHashChange)
+})
+onUnmounted(() => {
+  window.removeEventListener('paste', onPaste)
+  window.removeEventListener('hashchange', onHashChange)
 })
 </script>
 
 <template>
-  <UApp>
+  <UApp :toaster="{ position: 'bottom-right' }">
     <div
-      class="h-screen bg-theme-page text-theme-text flex flex-col font-sans overflow-hidden transition-colors duration-200"
+      class="h-dvh flex flex-col bg-muted text-default"
+      @dragover="onDragOver"
+      @dragleave.self="isDragging = false"
+      @drop="onDrop"
     >
-      <!-- Navbar (Fixed Top) -->
-      <header
-        class="bg-theme-card border-b border-theme-border py-2 px-6 flex justify-between items-center shadow-sm flex-shrink-0 transition-colors duration-200"
-      >
-        <!-- Left Section: Logo, Title & Workspace Toggle Tabs (Legacy Switch Style) -->
-        <div class="flex items-center gap-4 flex-shrink-0">
-          <div class="flex items-center gap-2.5">
-            <div
-              class="w-8 h-8 rounded-lg bg-primary-600 dark:bg-primary-500 flex items-center justify-center font-extrabold text-white dark:text-theme-page text-lg shadow-md select-none"
-            >
-              CV
-            </div>
-            <h1
-              class="text-base font-extrabold tracking-tight bg-gradient-to-r from-primary-600 to-primary-400 dark:from-primary-550 dark:to-primary-300 bg-clip-text text-transparent hidden xl:block"
-            >
-              {{ t('app_title') }}
-            </h1>
-          </div>
-
-          <!-- Workspace Selector Toggle Tabs -->
-          <div class="flex items-center gap-1 bg-theme-muted/50 border border-theme-border p-0.5 rounded-lg select-none">
-            <button
-              @click="store.activeWorkspace = 'cv'"
-              :class="[
-                'px-3.5 py-1 text-xs font-bold rounded-md transition duration-150 cursor-pointer flex items-center gap-1 select-none',
-                store.activeWorkspace === 'cv'
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'text-theme-text-muted hover:text-theme-text hover:bg-theme-hover/30',
-              ]"
-            >
-              <UIcon name="i-lucide-file-text" class="w-3.5 h-3.5" />
-              <span>{{ t('cv_workspace') }}</span>
-            </button>
-            <button
-              @click="store.activeWorkspace = 'cover-letter'"
-              :class="[
-                'px-3.5 py-1 text-xs font-bold rounded-md transition duration-150 cursor-pointer flex items-center gap-1 select-none',
-                store.activeWorkspace === 'cover-letter'
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'text-theme-text-muted hover:text-theme-text hover:bg-theme-hover/30',
-              ]"
-            >
-              <UIcon name="i-lucide-mail" class="w-3.5 h-3.5" />
-              <span>{{ t('cover_letter_workspace') }}</span>
-            </button>
-          </div>
+      <!-- Header -->
+      <header class="h-14 shrink-0 border-b border-default bg-default px-3 sm:px-4 flex items-center gap-3">
+        <div class="flex items-center gap-2 shrink-0">
+          <div class="size-8 rounded-lg bg-primary text-inverted flex items-center justify-center text-sm font-bold select-none">CV</div>
+          <span class="hidden md:block text-sm font-semibold text-highlighted">CV Editor</span>
         </div>
 
-        <!-- Center Section: AI Assistants (Gems) Dropdown & Info links -->
-        <div class="flex-1 max-w-sm px-4 hidden md:block">
-          <UNavigationMenu
-            highlight
-            highlight-color="primary"
-            orientation="horizontal"
-            :items="navItems"
-            :ui="customUi"
-            class="w-full"
-          />
-        </div>
+        <UTabs
+          v-model="store.activeWorkspace"
+          :items="[
+            { label: t('cv_workspace'), value: 'cv', icon: 'i-lucide-file-user' },
+            { label: t('cover_letter_workspace'), value: 'cover-letter', icon: 'i-lucide-mail' },
+          ]"
+          :content="false"
+          size="xs"
+          class="w-auto"
+          :ui="{ label: 'hidden sm:inline' }"
+        />
 
-        <!-- Right Section: Actions -->
-        <div class="flex items-center gap-2.5 flex-shrink-0">
-          <!-- Reset / Load Sample Data button -->
-          <button
-            @click="store.loadSample()"
-            class="px-2.5 py-1.5 bg-theme-element hover:bg-theme-hover border border-theme-border text-theme-text hover:text-primary-500 rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-sm flex items-center gap-1 active:scale-95 select-none"
-            :title="t('reset_sample') || 'Reset to Sample Data'"
-          >
-            <UIcon name="i-lucide-refresh-cw" class="w-3.5 h-3.5" />
-            <span class="hidden sm:inline">{{ t('reset_sample') || 'Load Sample' }}</span>
-          </button>
+        <div class="flex-1" />
 
-          <!-- Middle actions (Teleported download buttons) -->
-          <div id="navbar-actions" class="flex items-center gap-2"></div>
-
-          <!-- Import JSON Data Button with Label (Next to Download button) -->
-          <button
-            @click="isImportOpen = true"
-            class="bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition duration-150 cursor-pointer shadow-md flex items-center gap-1 active:scale-95 select-none"
-            :title="store.uiLanguage === 'Vietnamese' ? 'Nhập dữ liệu JSON' : 'Import JSON Data'"
-          >
-            <UIcon name="i-lucide-import" class="w-3.5 h-3.5 text-white animate-pulse" />
-            <span class="hidden sm:inline">{{ store.uiLanguage === 'Vietnamese' ? 'Nhập dữ liệu' : 'Import' }}</span>
-          </button>
-
-          <!-- Preset Manage Button Popover (Behavior identical to Download button popover) -->
-          <UPopover :content="{ align: 'end', side: 'bottom', sideOffset: 8 }">
-            <button
-              class="bg-theme-element hover:bg-theme-hover border border-theme-border text-theme-text-sub hover:text-theme-text px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95 select-none"
-              :title="t('preset_manage')"
-            >
-              <UIcon name="i-lucide-folder-heart" class="w-4 h-4 text-indigo-500" />
-              <span>{{ t('preset_btn') || 'Presets' }}</span>
-            </button>
-            <template #content>
-              <div class="flex flex-col p-1 w-44 bg-theme-card border border-theme-border rounded-xl shadow-2xl text-theme-text-sub">
-                <!-- Load Option -->
-                <button
-                  @click="openPresetModal('load')"
-                  class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-theme-hover hover:text-theme-text transition text-left cursor-pointer rounded-lg w-full"
-                >
-                  <UIcon name="i-lucide-folder-open" class="w-4 h-4 text-indigo-500" />
-                  <span>{{ store.uiLanguage === 'Vietnamese' ? 'Tải hồ sơ' : 'Load Preset' }}</span>
-                </button>
-                <!-- Save Option -->
-                <button
-                  @click="openPresetModal('save')"
-                  class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-theme-hover hover:text-theme-text transition text-left cursor-pointer rounded-lg w-full"
-                >
-                  <UIcon name="i-lucide-save" class="w-4 h-4 text-indigo-500" />
-                  <span>{{ store.uiLanguage === 'Vietnamese' ? 'Lưu hồ sơ hiện tại' : 'Save Preset' }}</span>
-                </button>
-              </div>
-            </template>
-          </UPopover>
-
-          <!-- UI Language Toggle -->
-          <div
-            class="flex items-center gap-1 bg-theme-muted/50 border border-theme-border p-0.5 rounded-lg select-none"
-          >
-            <button
-              @click="store.uiLanguage = 'English'"
-              :class="[
-                'px-3 py-1.5 text-xs font-bold rounded-md transition cursor-pointer active:scale-95',
-                store.uiLanguage === 'English'
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'text-theme-text-muted hover:text-theme-text',
-              ]"
-            >
-              EN
-            </button>
-            <button
-              @click="store.uiLanguage = 'Vietnamese'"
-              :class="[
-                'px-3 py-1.5 text-xs font-bold rounded-md transition cursor-pointer active:scale-95',
-                store.uiLanguage === 'Vietnamese'
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'text-theme-text-muted hover:text-theme-text',
-              ]"
-            >
-              VI
-            </button>
-          </div>
-
-          <!-- Color Mode Toggle Button -->
-          <UColorModeButton size="md" class="cursor-pointer" />
-
-          <!-- Settings Button -->
-          <button
-            @click="isSettingsOpen = true"
-            class="bg-theme-element hover:bg-theme-hover border border-theme-border text-theme-text-sub hover:text-theme-text p-2 rounded-lg transition duration-150 cursor-pointer shadow-sm flex items-center justify-center active:scale-95 select-none"
-            :title="t('settings_btn')"
-          >
-            <UIcon name="i-lucide-sliders" class="w-4 h-4 text-indigo-500" />
-          </button>
-        </div>
+        <UButton
+          icon="i-lucide-sparkles"
+          color="primary"
+          variant="soft"
+          :label="t('ai_btn')"
+          :ui="{ label: 'hidden sm:inline' }"
+          @click="openAi()"
+        />
+        <UTooltip :text="t('check_tooltip')">
+          <UButton color="neutral" variant="outline" @click="isCheckOpen = true">
+            <UChip :color="scoreColor" size="lg" standalone inset />
+            <span class="hidden sm:inline">{{ t('check_btn') }}</span>
+            <span class="font-semibold tabular-nums">{{ audit.score }}</span>
+          </UButton>
+        </UTooltip>
+        <DownloadMenu />
+        <UColorModeButton class="hidden sm:inline-flex" />
+        <UDropdownMenu :items="moreItems" :content="{ align: 'end' }">
+          <UButton color="neutral" variant="ghost" icon="i-lucide-ellipsis-vertical" :aria-label="t('more_menu')" />
+        </UDropdownMenu>
       </header>
 
-      <!-- Main Layout Grid -->
-      <main
-        class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-[95vw] mx-auto pb-6 pt-4"
-      >
-        <!-- Editor Pane -->
-        <div class="flex flex-col h-full overflow-hidden">
-          <CVEditor v-if="store.activeWorkspace === 'cv'" />
-          <CoverLetterEditor v-else />
-        </div>
+      <!-- Mobile pane switch -->
+      <div v-if="!showWelcome" class="lg:hidden px-3 pt-3">
+        <UTabs
+          v-model="mobilePane"
+          :items="[
+            { label: t('pane_edit'), value: 'edit', icon: 'i-lucide-pencil' },
+            { label: t('pane_preview'), value: 'preview', icon: 'i-lucide-eye' },
+          ]"
+          :content="false"
+          size="sm"
+        />
+      </div>
 
-        <!-- Preview Pane -->
-        <div class="flex flex-col h-full overflow-hidden">
-          <CVPlayer v-if="store.activeWorkspace === 'cv'" :data="{}" />
-          <CoverLetterPlayer v-else />
+      <!-- Body -->
+      <main class="flex-1 min-h-0">
+        <Welcome v-if="showWelcome" @ai="openAi('create')" @import="isImportOpen = true" @blank="startedBlank = true" />
+        <div
+          v-else
+          class="h-full grid gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]"
+        >
+          <div class="min-h-0" :class="mobilePane === 'edit' ? 'block' : 'hidden lg:block'">
+            <CVEditor v-if="store.activeWorkspace === 'cv'" />
+            <CoverLetterEditor v-else />
+          </div>
+          <div class="min-h-0" :class="mobilePane === 'preview' ? 'block' : 'hidden lg:block'">
+            <CVPlayer v-if="store.activeWorkspace === 'cv'" />
+            <CoverLetterPlayer v-else />
+          </div>
         </div>
       </main>
 
-      <!-- Settings Drawer Component -->
+      <!-- Drop overlay -->
+      <div
+        v-if="isDragging"
+        class="fixed inset-0 z-50 bg-primary/10 border-4 border-dashed border-primary flex items-center justify-center pointer-events-none"
+      >
+        <p class="text-lg font-semibold text-primary">{{ t('drop_hint') }}</p>
+      </div>
+
+      <AiHandoff v-model:open="isAiOpen" :initial-task="aiTask" />
+      <CheckPanel v-model:open="isCheckOpen" @fix-with-ai="openAi('improve')" />
       <SettingsDrawer v-model="isSettingsOpen" />
-
-      <!-- Profile Presets Modal Dialog (Load/Save UI) -->
       <ProfilePresets v-model:open="isPresetOpen" :mode="presetMode" />
-
-      <!-- Import CV/Cover Letter Data Modal Dialog -->
       <ImportModal v-model="isImportOpen" />
-
-      <!-- Prompts Hub Modal Dialog -->
-      <PromptHubModal />
     </div>
   </UApp>
 </template>
-
-<style>
-/* Global resets / style customizations */
-body {
-  margin: 0;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-</style>

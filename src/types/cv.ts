@@ -26,6 +26,26 @@ export type SectionKey =
  */
 export type EditorMode = 'tabs' | 'outline'
 
+/** How each job's company / title / dates header is laid out. one-line drops the location. */
+export type ExperienceHeaderStyle = 'classic' | 'role-company' | 'one-line'
+
+/** PDF layout template. */
+export type CvTemplate = 'harvard' | 'modern'
+
+/** How the profile photo is drawn in the PDF. */
+export interface AvatarStyle {
+  /** Crop shape. */
+  shape: 'square' | 'rounded' | 'circle'
+  /** Where the photo sits relative to the name block. */
+  position: 'left' | 'right' | 'center'
+  /** Photo edge length: sm 56pt, md 72pt, lg 90pt. */
+  size: 'sm' | 'md' | 'lg'
+  /** cover fills the shape and crops; contain shows the whole image. */
+  fit: 'cover' | 'contain'
+}
+
+export const DEFAULT_AVATAR_STYLE: AvatarStyle = { shape: 'rounded', position: 'left', size: 'md', fit: 'cover' }
+
 /**
  * Represents a parsed fragment of a bullet point, supporting nested levels and rich formatting.
  *

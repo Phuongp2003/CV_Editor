@@ -4,7 +4,7 @@ import { jsPDF } from 'jspdf'
 import { useCVStore } from '@/stores/cv'
 import { storeToRefs } from 'pinia'
 import { useI18n } from '@/composables/useI18n'
-import DownloadMenu from '@/components/DownloadMenu.vue'
+import { resolvePdfFont, loadedFonts, ensureFonts } from '@/utils/fonts'
 import { cleanUrl, parseRichText } from '@/utils/richText'
 import type { TextSegment } from '@/utils/richText'
 
@@ -117,69 +117,24 @@ function generatePDF(shouldDownload = false) {
   const marginTop = 40
   let y = 40
 
-  let fontFamily = 'NotoSans'
-  if (selectedFont.value === 'arial') {
-    fontFamily = 'helvetica'
-  } else if (selectedFont.value === 'custom' && customFontName.value) {
-    const name = customFontName.value.trim().toLowerCase()
-    if (
-      name.includes('arial') ||
-      name.includes('sans') ||
-      name.includes('helvetica') ||
-      name.includes('system-ui') ||
-      name.includes('inter') ||
-      name.includes('roboto')
-    ) {
-      fontFamily = 'helvetica'
-    } else if (
-      name.includes('times') ||
-      name.includes('serif') ||
-      name.includes('garamond') ||
-      name.includes('georgia')
-    ) {
-      fontFamily = 'times'
-    } else if (name.includes('courier') || name.includes('mono')) {
-      fontFamily = 'courier'
-    } else {
-      fontFamily = customFontName.value.trim()
-    }
+  const letterText = JSON.stringify(cl.value)
+  const resolved = resolvePdfFont(selectedFont.value, customFontName.value, language.value, letterText)
+  const embedded = resolved.embed ? loadedFonts(resolved.embed) : null
+  if (resolved.embed && !embedded) {
+    ensureFonts(resolved.embed).then(() => generatePDF(shouldDownload))
+    return
   }
-  let useEmbeddedFonts = selectedFont.value !== 'arial' && selectedFont.value !== 'custom'
-
-  // Safety fallback if fonts are not loaded (e.g. in Vitest test environment)
-  const hasFont = (window as any).font || (window as any).RegJap || (window as any).KrRegular || (window as any).RegCN
-  if (useEmbeddedFonts && !hasFont) {
-    useEmbeddedFonts = false
-    fontFamily = 'helvetica'
-  }
-
-  if (useEmbeddedFonts) {
-    const lang = language.value
-    if (lang === 'Japanese' || lang === 'ja') {
-      doc.addFileToVFS('NotoSans-normal.ttf', (window as any).RegJap)
-      doc.addFileToVFS('NotoSans-bold.ttf', (window as any).Boldjap)
-    } else if (lang === 'Korean' || lang === 'ko') {
-      doc.addFileToVFS('NotoSans-normal.ttf', (window as any).KrRegular)
-      doc.addFileToVFS('NotoSans-bold.ttf', (window as any).KrBold)
-    } else if (lang === 'Chinese' || lang === 'zh') {
-      doc.addFileToVFS('NotoSans-normal.ttf', (window as any).RegCN)
-      doc.addFileToVFS('NotoSans-bold.ttf', (window as any).BoldCN)
-    } else {
-      doc.addFileToVFS('NotoSans-normal.ttf', (window as any).font)
-      doc.addFileToVFS('NotoSans-bold.ttf', (window as any).fontBold)
-    }
-    doc.addFont('NotoSans-normal.ttf', 'NotoSans', 'normal')
-    doc.addFont('NotoSans-bold.ttf', 'NotoSans', 'bold')
-    doc.addFont('NotoSans-normal.ttf', 'NotoSans', 'italic')
-    doc.addFont('NotoSans-bold.ttf', 'NotoSans', 'bolditalic')
+  if (embedded) {
+    doc.addFileToVFS('CvFont-normal.ttf', embedded.normal)
+    doc.addFileToVFS('CvFont-bold.ttf', embedded.bold)
+    doc.addFont('CvFont-normal.ttf', resolved.family, 'normal')
+    doc.addFont('CvFont-bold.ttf', resolved.family, 'bold')
+    doc.addFont('CvFont-normal.ttf', resolved.family, 'italic')
+    doc.addFont('CvFont-bold.ttf', resolved.family, 'bolditalic')
   }
 
   const setFont = (style = 'normal') => {
-    if (useEmbeddedFonts) {
-      doc.setFont('NotoSans', style)
-    } else {
-      doc.setFont(fontFamily, style)
-    }
+    doc.setFont(resolved.family, style)
   }
 
   function checkAndAddPage() {
@@ -419,10 +374,6 @@ onUnmounted(() => {
         </svg>
         <span class="text-sm font-bold text-theme-text">{{ t('cl_preview_title') }}</span>
       </div>
-
-      <Teleport defer to="#navbar-actions">
-        <DownloadMenu />
-      </Teleport>
     </div>
 
     <!-- PDF Display Area -->
