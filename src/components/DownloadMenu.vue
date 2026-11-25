@@ -371,26 +371,50 @@ function executeHtmlDownload(filename: string) {
     if (secKey === 'experience' && cv.experiences?.length) {
       htmlContent += `  <div>
     <div class="section-title">${sectionLabels.experience}</div>`
-      cv.experiences.forEach((entry) => {
-        if (!entry.company?.trim() && !entry.position?.trim()) return
-        htmlContent += `    <div style="margin-bottom: 12px; page-break-inside: avoid;">
-      <div class="item-header">
-        <span>${entry.company?.trim().toUpperCase() || ''}${entry.location ? `, <em>${entry.location.trim()}</em>` : ''}</span>
-        <span class="item-date">${entry.dates || ''}</span>
+      const activeExps = cv.experiences.filter(
+        (entry) => entry.company?.trim() || entry.position?.trim() || entry.bullets?.length,
+      )
+      activeExps.forEach((entry, index) => {
+        const company = entry.company?.trim() || ''
+        const position = entry.position?.trim() || ''
+        const dates = entry.dates?.trim() || ''
+        const previousCompany = activeExps[index - 1]?.company?.trim() || ''
+        const sameCompany = !!company && previousCompany.toLowerCase() === company.toLowerCase()
+        const groupedContinuation = sameCompany && store.experienceCompanyMode === 'single-title'
+        const roleLabel = [position, dates].filter(Boolean).join(' · ')
+        const bulletRows = (entry.bullets || []).map((bullet) => ({ ...bullet }))
+        let roleBulletIndex = -1
+        if (groupedContinuation && roleLabel) {
+          roleBulletIndex = bulletRows.findIndex((bullet) => bullet.type !== 'header' && bullet.text?.trim())
+          if (roleBulletIndex >= 0) {
+            bulletRows[roleBulletIndex]!.text = `**${roleLabel}:** ${bulletRows[roleBulletIndex]!.text}`
+          } else {
+            roleBulletIndex = bulletRows.length
+            bulletRows.push({ id: `role-${index}`, type: 'l1', text: `**${roleLabel}**` })
+          }
+        }
+        htmlContent += `    <div style="margin-bottom: ${sameCompany ? 4 : 12}px; page-break-inside: avoid;">
+${groupedContinuation ? '' : sameCompany ? `      <div class="item-subheader">
+        <span>${position}</span>
+        <span class="item-date">${dates}</span>
+      </div>` : `      <div class="item-header">
+        <span>${company.toUpperCase()}${entry.location ? `, <em>${entry.location.trim()}</em>` : ''}</span>
+        <span class="item-date">${dates}</span>
       </div>
       <div class="item-subheader">
-        <span>${entry.position || ''}</span>
-      </div>`
-
-        if (entry.bullets?.length) {
+        <span>${position}</span>
+      </div>`}`
+        if (bulletRows.length) {
           htmlContent += `      <ul class="bullet-list">`
-          entry.bullets.forEach((bullet) => {
+          bulletRows.forEach((bullet, bulletIndex) => {
             const textVal = bullet.text?.trim()
             if (!textVal) return
             if (bullet.type === 'header') {
               htmlContent += `        <li class="bullet-header">${parseRichTextToHtml(textVal)}</li>`
             } else {
-              const levelClass = bullet.type === 'l2' ? 'l2' : bullet.type === 'l3' ? 'l3' : 'l1'
+              let level = bullet.type === 'l2' ? 2 : bullet.type === 'l3' ? 3 : 1
+              if (groupedContinuation && roleBulletIndex >= 0 && bulletIndex !== roleBulletIndex) level = Math.min(3, level + 1)
+              const levelClass = level === 2 ? 'l2' : level === 3 ? 'l3' : 'l1'
               htmlContent += `        <li class="bullet-item ${levelClass}">${parseRichTextToHtml(textVal)}</li>`
             }
           })
@@ -510,6 +534,7 @@ async function executeDocxDownload(filename: string) {
       bulletChars: store.bulletChars,
       typography,
       experienceHeaderStyle: store.experienceHeaderStyle,
+      experienceCompanyMode: store.experienceCompanyMode,
       template: store.template,
     })
     saveAs(blob, `${filename}.docx`)

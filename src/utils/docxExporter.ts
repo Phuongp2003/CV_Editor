@@ -9,7 +9,7 @@ import {
   TabStopType,
   TabStopPosition,
 } from 'docx'
-import type { CVData, CoverLetterData } from '@/types/cv'
+import type { CVData, CoverLetterData, ExperienceCompanyMode } from '@/types/cv'
 import { cleanUrl, parseRichText } from '@/utils/richText'
 
 /** Maps the PDF font choice to a font Word is likely to have. */
@@ -52,6 +52,7 @@ interface ExportDocxOptions {
   bulletChars?: { l1: string; l2: string; l3: string }
   /** Experience header layout; one-line = COMPANY | Title + dates, no location. */
   experienceHeaderStyle?: 'classic' | 'role-company' | 'one-line'
+  experienceCompanyMode?: ExperienceCompanyMode
   /** 'harvard' uses a thin black rule under headings; 'modern' a thicker grey one. */
   template?: 'harvard' | 'modern'
   /** Typography sizing overrides. */
@@ -127,6 +128,7 @@ export async function exportDocx({
   bulletChars = { l1: '•', l2: '◦', l3: '▪' },
   typography,
   experienceHeaderStyle = 'classic',
+  experienceCompanyMode = 'separate-titles',
   template = 'harvard',
 }: ExportDocxOptions): Promise<Blob> {
   const resolvedLabels = { ...DEFAULT_LABELS, ...labels }
@@ -367,20 +369,43 @@ export async function exportDocx({
           const posStr = entry.position?.trim() || ''
           const datesStr = entry.dates?.trim() || ''
           const locStr = entry.location?.trim() || ''
+          const previousCompany = activeExps[index - 1]?.company?.trim() || ''
+          const sameCompany = !!companyStr && previousCompany.toLowerCase() === companyStr.toLowerCase()
+          const groupedContinuation = sameCompany && experienceCompanyMode === 'single-title'
+          const roleLabel = [posStr, datesStr].filter(Boolean).join(' · ')
+          const bulletRows = (entry.bullets || []).map((bullet) => ({ ...bullet }))
+          let roleBulletIndex = -1
+          if (groupedContinuation && roleLabel) {
+            roleBulletIndex = bulletRows.findIndex((bullet) => bullet.type !== 'header' && bullet.text?.trim())
+            if (roleBulletIndex >= 0) {
+              bulletRows[roleBulletIndex]!.text = `**${roleLabel}:** ${bulletRows[roleBulletIndex]!.text}`
+            } else {
+              roleBulletIndex = bulletRows.length
+              bulletRows.push({ id: `role-${index}`, type: 'l1', text: `**${roleLabel}**` })
+            }
+          }
 
-          if (index > 0) {
+          if (index > 0 && !sameCompany) {
             // Spacer between experience items
             children.push(new Paragraph({ spacing: { before: 120 } }))
           }
 
-          if (experienceHeaderStyle === 'one-line') {
+          if (groupedContinuation) {
+            // Keep one company title; the continuation role is prefixed to its first bullet.
+          } else if (sameCompany) {
+            const leftRuns = posStr
+              ? createRichTextRuns(posStr, fontName, bodySize, { defaultBold: true })
+              : []
+            const rightRuns = datesStr ? [new TextRun({ text: datesStr, font: fontName, size: bodySize })] : []
+            children.push(createTabbedLine(leftRuns, rightRuns, 40))
+          } else if (experienceHeaderStyle === 'one-line') {
             const leftRuns = []
             if (companyStr) leftRuns.push(new TextRun({ text: companyStr.toUpperCase(), bold: true, font: fontName, size: bodySize }))
             if (companyStr && posStr) leftRuns.push(new TextRun({ text: '  |  ', font: fontName, size: bodySize }))
             if (posStr) leftRuns.push(new TextRun({ text: posStr, italics: true, font: fontName, size: bodySize }))
             const rightRuns = datesStr ? [new TextRun({ text: datesStr, font: fontName, size: bodySize })] : []
             children.push(createTabbedLine(leftRuns, rightRuns, 40))
-          } else if (experienceHeaderStyle === 'role-company') {
+          } else if (!sameCompany && experienceHeaderStyle === 'role-company') {
             const leftRuns = []
             if (posStr) {
               leftRuns.push(
@@ -420,7 +445,7 @@ export async function exportDocx({
             children.push(
               createTabbedLine(leftRuns, rightRuns, 40),
             )
-          } else {
+          } else if (!sameCompany) {
             // Classic style
             // Company Name & Location on left, Dates on right (2-column table)
             const leftRuns = []
@@ -476,9 +501,9 @@ export async function exportDocx({
           }
 
           // Bullets
-          if (entry.bullets?.length) {
-            const hasHeader = entry.bullets.some((b) => b.type === 'header' && b.text?.trim())
-            entry.bullets.forEach((bullet) => {
+          if (bulletRows.length) {
+            const hasHeader = bulletRows.some((b) => b.type === 'header' && b.text?.trim())
+            bulletRows.forEach((bullet, bulletIndex) => {
               const textVal = bullet.text?.trim()
               if (!textVal) return
 
@@ -500,6 +525,10 @@ export async function exportDocx({
                 } else if (bullet.type === 'l3') {
                   level = 3
                   bulletChar = bulletChars.l3 || '▪'
+                }
+                if (groupedContinuation && roleBulletIndex >= 0 && bulletIndex !== roleBulletIndex) {
+                  level = Math.min(3, level + 1) as 1 | 2 | 3
+                  bulletChar = level === 2 ? bulletChars.l2 || '◦' : bulletChars.l3 || '▪'
                 }
 
                 const baseIndent = hasHeader ? 180 : 0

@@ -30,6 +30,7 @@ interface ProfilePreset {
   disabledSections: SectionKey[]
   sectionsOrder: SectionKey[]
   experienceHeaderStyle?: 'classic' | 'role-company' | 'one-line'
+  experienceCompanyMode?: 'separate-titles' | 'single-title'
 }
 
 const STORAGE_KEY = 'profileData'
@@ -122,6 +123,7 @@ function savePreset() {
     disabledSections: [...store.disabledSections],
     sectionsOrder: [...store.sectionsOrder],
     experienceHeaderStyle: store.experienceHeaderStyle,
+    experienceCompanyMode: store.experienceCompanyMode,
   }
 
   presets.value[slotIdx] = currentPreset
@@ -178,6 +180,7 @@ function loadPreset() {
     if (preset.sectionsOrder) {
       store.sectionsOrder = [...preset.sectionsOrder]
     }
+    store.experienceCompanyMode = preset.experienceCompanyMode || 'separate-titles'
   }
   updatePresetNameInput()
   showPresetMessage(t('preset_loaded_from_slot').replace('{slot}', String(slotIdx + 1)))

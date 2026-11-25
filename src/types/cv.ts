@@ -29,6 +29,9 @@ export type EditorMode = 'tabs' | 'outline'
 /** How each job's company / title / dates header is laid out. one-line drops the location. */
 export type ExperienceHeaderStyle = 'classic' | 'role-company' | 'one-line'
 
+/** How consecutive roles at one company appear in the exported CV. */
+export type ExperienceCompanyMode = 'separate-titles' | 'single-title'
+
 /** PDF layout template. */
 export type CvTemplate = 'harvard' | 'modern'
 

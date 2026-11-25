@@ -14,6 +14,7 @@ import type {
   CvTemplate,
   AvatarStyle,
   ExperienceHeaderStyle,
+  ExperienceCompanyMode,
 } from '@/types/cv'
 import { DEFAULT_SECTIONS_ORDER, DEFAULT_AVATAR_STYLE } from '@/types/cv'
 import { normalizeFontChoice } from '@/utils/fonts'
@@ -227,6 +228,7 @@ export const useCVStore = defineStore('cv', () => {
   const disabledSections = ref<SectionKey[]>(getLocalJson<SectionKey[]>('cv_disabledSections', ['summary']))
   /** Experience header layout ('classic' | 'role-company' | 'one-line'). */
   const experienceHeaderStyle = ref<ExperienceHeaderStyle>(getLocal('cv_experienceHeaderStyle', 'classic') as ExperienceHeaderStyle)
+  const experienceCompanyMode = ref<ExperienceCompanyMode>(getLocal('cv_experienceCompanyMode', 'separate-titles') as ExperienceCompanyMode)
   /** PDF layout: 'harvard' (centered headings, serif, ragged-right) or 'modern' (the original layout). */
   const template = ref<CvTemplate>((getLocal('cv_template', 'harvard') as CvTemplate) || 'harvard')
   /** Target job description, used by the CV check for keyword evidence. */
@@ -250,6 +252,7 @@ export const useCVStore = defineStore('cv', () => {
   watch(uiLanguage, (val) => setLocal('cv_uiLanguage', val))
   watch(editorMode, (val) => setLocal('cv_editorMode', val))
   watch(experienceHeaderStyle, (val) => setLocal('cv_experienceHeaderStyle', val))
+  watch(experienceCompanyMode, (val) => setLocal('cv_experienceCompanyMode', val))
   watch(sectionsOrder, (val) => setLocal('cv_sectionsOrder', JSON.stringify(val)), { deep: true })
 
   watch(
@@ -381,6 +384,7 @@ export const useCVStore = defineStore('cv', () => {
     } else {
       experienceHeaderStyle.value = 'classic'
     }
+    experienceCompanyMode.value = data.experienceCompanyMode === 'single-title' ? 'single-title' : 'separate-titles'
 
     if (Array.isArray(data.sectionsOrder)) {
       const order = [...data.sectionsOrder] as SectionKey[]
@@ -580,6 +584,7 @@ export const useCVStore = defineStore('cv', () => {
         sectionsOrder: sectionsOrder.value,
         disabledSections: disabledSections.value,
         experienceHeaderStyle: experienceHeaderStyle.value,
+        experienceCompanyMode: experienceCompanyMode.value,
         bulletChars: bulletChars.value,
         customSectionLabels: customSectionLabels.value,
       }),
@@ -672,6 +677,7 @@ export const useCVStore = defineStore('cv', () => {
     sectionsOrder,
     disabledSections,
     experienceHeaderStyle,
+    experienceCompanyMode,
     editViewMode,
     activeSectionTab,
     isLayoutDrawerOpen,

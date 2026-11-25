@@ -30,6 +30,7 @@ Vietnamese: đam mê, năng động, tinh thần cầu tiến, không ngừng h�
 2. Objective or summary: two lines max. Role + level + 2-3 target technologies + one proof point. Enable only one of the two.
 3. Education (first for students and new graduates; after Experience once work experience is the stronger signal).
 4. Experience: company, location, title, dates, bullets. Reverse chronological.
+   Keep distinct roles at the same company as separate experience records. `experienceCompanyMode` controls display: `separate-titles` shows each role title; `single-title` keeps the first title and folds later roles into their own labeled bullet.
 5. Projects: only ones that add evidence the jobs do not.
 6. Skills: grouped, target stack first. Drop anything the user cannot discuss for 5 minutes. Every key skill should also appear in at least one bullet.
 7. Certifications.

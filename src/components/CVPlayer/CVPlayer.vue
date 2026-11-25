@@ -22,6 +22,7 @@ const {
   disabledSections,
   bulletChars,
   experienceHeaderStyle,
+  experienceCompanyMode,
   avatarStyle,
 } = storeToRefs(store)
 
@@ -57,6 +58,7 @@ async function generatePDF(shouldDownload = false): Promise<void> {
       disabledSections: disabledSections.value,
       bulletChars: bulletChars.value,
       experienceHeaderStyle: experienceHeaderStyle.value,
+      experienceCompanyMode: experienceCompanyMode.value,
       avatarStyle: avatarStyle.value,
       sectionLabels: sectionLabels.value,
     }
@@ -101,6 +103,7 @@ watch(
     disabledSections,
     bulletChars,
     experienceHeaderStyle,
+    experienceCompanyMode,
     avatarStyle,
   ],
   scheduleRender,

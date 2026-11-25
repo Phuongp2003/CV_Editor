@@ -1,0 +1,4 @@
+interface:
+  display_name: "CV Editor"
+  short_description: "Create truthful, ATS-ready CVs and hand-off links"
+  default_prompt: "Use $cv-editor to create or tailor my CV from verified facts and give me a CV Editor hand-off link."

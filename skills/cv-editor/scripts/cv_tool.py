@@ -235,6 +235,7 @@ def estimate_lines(data: dict) -> int:
     cv = cv_of(data)
     disabled = set(data.get("disabledSections", ["summary"]))
     one_line = data.get("experienceHeaderStyle") == "one-line"
+    company_mode = data.get("experienceCompanyMode", "separate-titles")
     wrap = lambda t, w=104: max(1, math.ceil(len(plain(t)) / w))
     n = 3
     for sec in data.get("sectionsOrder") or ["objective", "experience", "projects", "education", "skills", "certificates"]:
@@ -247,7 +248,10 @@ def estimate_lines(data: dict) -> int:
             prev = None
             for e in cv["experiences"]:
                 same = prev and prev.lower() == e.get("company", "").lower()
-                n += 1 if (one_line or same) else 2
+                if same:
+                    n += 0 if company_mode == "single-title" else 1
+                else:
+                    n += 1 if one_line else 2
                 n += sum(wrap(b.get("text", ""), 98) for b in e.get("bullets", []))
                 prev = e.get("company", "")
         elif sec == "projects" and cv.get("projects"):
@@ -514,9 +518,28 @@ def as_text(data: dict) -> str:
             out += [sec.upper(), plain(cv[sec]), ""]
         elif sec == "experience" and cv.get("experiences"):
             out.append("EXPERIENCE")
+            prev_company = ""
+            company_mode = data.get("experienceCompanyMode", "separate-titles")
             for e in cv["experiences"]:
-                out.append(f"{e.get('company', '')} | {e.get('position', '')}    {e.get('dates', '')}")
-                out += [("  " if b.get("type") == "header" else "  - ") + plain(b.get("text", "")) for b in e.get("bullets", [])]
+                company = e.get("company", "")
+                position = e.get("position", "")
+                dates = e.get("dates", "")
+                same = bool(company and prev_company.lower() == company.lower())
+                if same and company_mode != "single-title":
+                    out.append(f"  {position}    {dates}")
+                elif not same:
+                    out.append(f"{company} | {position}    {dates}")
+                bullets = e.get("bullets", [])
+                if same and company_mode == "single-title":
+                    role_label = " · ".join(x for x in [position, dates] if x)
+                    first_detail = next((i for i, b in enumerate(bullets) if b.get("type") != "header" and b.get("text", "").strip()), None)
+                    if first_detail is None and role_label:
+                        bullets = [*bullets, {"type": "l1", "text": role_label}]
+                    elif first_detail is not None:
+                        bullets = [dict(b) for b in bullets]
+                        bullets[first_detail]["text"] = f"{role_label}: {bullets[first_detail].get('text', '')}"
+                out += [("  " if b.get("type") == "header" else "  - ") + plain(b.get("text", "")) for b in bullets]
+                prev_company = company
             out.append("")
         elif sec == "projects" and cv.get("projects"):
             out.append("PROJECTS")

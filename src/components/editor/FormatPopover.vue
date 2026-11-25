@@ -6,7 +6,16 @@ import { useI18n } from '@/composables/useI18n'
 
 const store = useCVStore()
 const { t } = useI18n()
-const { template, language, selectedFont, customFontName, sizeMultiplier, experienceHeaderStyle, bulletChars } =
+const {
+  template,
+  language,
+  selectedFont,
+  customFontName,
+  sizeMultiplier,
+  experienceHeaderStyle,
+  experienceCompanyMode,
+  bulletChars,
+} =
   storeToRefs(store)
 
 const templates = computed(() => [
@@ -30,6 +39,10 @@ const headerStyles = computed(() => [
   { label: t('style_classic'), value: 'classic' },
   { label: t('style_role_company'), value: 'role-company' },
   { label: t('style_one_line'), value: 'one-line' },
+])
+const experienceCompanyModes = computed(() => [
+  { label: t('experience_mode_separate_titles'), value: 'separate-titles' },
+  { label: t('experience_mode_single_title'), value: 'single-title' },
 ])
 </script>
 
@@ -55,6 +68,9 @@ const headerStyles = computed(() => [
         </UFormField>
         <UFormField :label="t('exp_header_style')">
           <USelect v-model="experienceHeaderStyle" :items="headerStyles" class="w-full" />
+        </UFormField>
+        <UFormField :label="t('experience_company_mode')">
+          <USelect v-model="experienceCompanyMode" :items="experienceCompanyModes" class="w-full" />
         </UFormField>
         <UFormField :label="t('bullet_chars')">
           <div class="grid grid-cols-3 gap-2">

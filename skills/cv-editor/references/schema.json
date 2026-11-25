@@ -112,6 +112,11 @@
       "enum": ["classic", "role-company", "one-line"],
       "description": "classic: COMPANY + location / Title + dates on two lines. one-line: COMPANY | Title + dates, no location."
     },
+    "experienceCompanyMode": {
+      "enum": ["separate-titles", "single-title"],
+      "default": "separate-titles",
+      "description": "For consecutive roles at one company, show every job title separately, or show only the first title and merge later roles into bullets."
+    },
     "language": { "enum": ["English", "Vietnamese", "Japanese", "Korean", "Chinese"] },
     "sectionsOrder": {
       "type": "array",

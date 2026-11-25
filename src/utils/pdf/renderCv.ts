@@ -8,7 +8,7 @@
  * - modern: the original layout. Left headings, justified bullets, grey dates, blue links.
  */
 import { jsPDF } from 'jspdf'
-import type { CVData, SectionKey, BulletChars, BulletPart, CvTemplate, AvatarStyle } from '@/types/cv'
+import type { CVData, SectionKey, BulletChars, BulletPart, CvTemplate, AvatarStyle, ExperienceCompanyMode } from '@/types/cv'
 import { DEFAULT_AVATAR_STYLE } from '@/types/cv'
 import { AVATAR_SIZES } from '@/utils/avatar'
 import { parseRichText, cleanUrl } from '@/utils/richText'
@@ -25,6 +25,7 @@ export interface RenderCvOptions {
   disabledSections: SectionKey[]
   bulletChars: BulletChars
   experienceHeaderStyle: 'classic' | 'role-company' | 'one-line'
+  experienceCompanyMode?: ExperienceCompanyMode
   /** Profile photo layout; defaults to rounded, left, medium, cover. */
   avatarStyle?: AvatarStyle
   sectionLabels: Record<SectionKey, string>
@@ -252,7 +253,13 @@ export function renderCv(o: RenderCvOptions): RenderCvResult {
   }
 
   /** One line with text on the left (rich) and plain text on the right. */
-  function drawSplitLine(leftText: string, leftStyle: Style, rightText: string, rightStyle: Style = 'normal') {
+  function drawSplitLine(
+    leftText: string,
+    leftStyle: Style,
+    rightText: string,
+    rightStyle: Style = 'normal',
+    indent = 0,
+  ) {
     ensure(L.lineH)
     setFont(rightStyle)
     const rw = rightText ? tw(rightText) + 12 : 0
@@ -261,7 +268,7 @@ export function renderCv(o: RenderCvOptions): RenderCvResult {
       textRight(rightText, right, y)
       color('#000000')
     }
-    drawWords(richWords(leftText, leftStyle), left, width - rw, L.lineH, L.body, false)
+    drawWords(richWords(leftText, leftStyle), left + indent, width - rw - indent, L.lineH, L.body, false)
   }
 
   // ── Header ────────────────────────────────────────────────────────────────
@@ -401,22 +408,34 @@ export function renderCv(o: RenderCvOptions): RenderCvResult {
     y += L.sectionGapAfter
   }
 
-  function bullets(parts: BulletPart[]) {
+  function bullets(parts: BulletPart[], indent = 0, levelOffset = 0, roleLabel = '') {
+    const items = parts.map((part) => ({ ...part }))
+    let roleBulletIndex = -1
+    if (roleLabel) {
+      roleBulletIndex = items.findIndex((part) => part.type !== 'header' && part.text.trim())
+      if (roleBulletIndex >= 0) {
+        items[roleBulletIndex]!.text = `**${roleLabel}:** ${items[roleBulletIndex]!.text}`
+      } else {
+        roleBulletIndex = items.length
+        items.push({ id: `role-${roleLabel}`, type: 'l1', text: `**${roleLabel}**` })
+      }
+    }
     // A little air between the title/date lines and the content under them.
-    if (parts.some((p) => p.text.trim())) y += 2
-    parts.forEach((p) => {
+    if (items.some((p) => p.text.trim())) y += 2
+    items.forEach((p, index) => {
       const text = p.text.trim()
       if (!text) return
       if (p.type === 'header') {
-        drawWords(richWords(text), left, width, L.lineH, L.body, false)
+        drawWords(richWords(text), left + indent, width - indent, L.lineH, L.body, false)
         return
       }
-      const level = p.type === 'l3' ? 3 : p.type === 'l2' ? 2 : 1
+      const nestedOffset = roleBulletIndex >= 0 && index !== roleBulletIndex ? 1 : 0
+      const level = Math.min(3, (p.type === 'l3' ? 3 : p.type === 'l2' ? 2 : 1) + levelOffset + nestedOffset)
       let glyph = (level === 1 ? o.bulletChars.l1 : level === 2 ? o.bulletChars.l2 : o.bulletChars.l3) || '•'
       // Standard PDF fonts cannot draw ◦ or ▪; swap in the closest WinAnsi glyph instead of changing the font.
       if (!font.embed && !isWinAnsi(glyph)) glyph = ['•', '–', '·'][level - 1] as string
       // Same indent whether or not the entry has a context line, so every bullet on the page lines up.
-      const x = left + L.bulletIndent + (level - 1) * 12
+      const x = left + indent + L.bulletIndent + (level - 1) * 12
       ensure(L.bulletLineH)
       setFont('normal')
       doc.text(glyph, x, y)
@@ -460,20 +479,27 @@ export function renderCv(o: RenderCvOptions): RenderCvResult {
         const dates = e.dates.trim()
         // Consecutive roles at the same organization: print the organization once (Harvard convention).
         const sameOrg = i > 0 && !!company && rows[i - 1]!.company.trim().toLowerCase() === company.toLowerCase()
-        if (i > 0) y += sameOrg ? 3 : L.entryGap
+        const groupedContinuation = sameOrg && o.experienceCompanyMode === 'single-title'
+        if (i > 0) y += sameOrg ? (groupedContinuation ? 1 : 4) : L.entryGap
         ensure(L.lineH * 3)
+        if (groupedContinuation) {
+          const roleLabel = [position, dates].filter(Boolean).join(' · ')
+          bullets(e.bullets, 0, 0, roleLabel)
+          return
+        }
+        if (sameOrg) {
+          const title = o.template === 'harvard' && o.experienceHeaderStyle !== 'role-company' ? `*${position}*` : `**${position}**`
+          drawSplitLine(position ? title : '', 'normal', dates)
+          bullets(e.bullets)
+          return
+        }
         if (o.experienceHeaderStyle === 'one-line') {
-          // COMPANY | Title ........ dates  (no location; same-company follow-up roles show the title only)
-          const head = sameOrg
-            ? position && `*${position}*`
-            : [company && `**${org(company)}**`, position && `*${position}*`].filter(Boolean).join('  |  ')
+          // COMPANY | Title ........ dates (no location)
+          const head = [company && `**${org(company)}**`, position && `**${position}**`].filter(Boolean).join('  |  ')
           drawSplitLine(head, 'normal', dates)
         } else if (o.experienceHeaderStyle === 'role-company') {
           const head = [position && `**${position}**`, company].filter(Boolean).join(', ')
           drawSplitLine(head + (location ? `, ${location}` : ''), 'normal', dates)
-        } else if (sameOrg) {
-          const title = o.template === 'harvard' ? `*${position}*` : `**${position}**`
-          drawSplitLine(position ? title : '', 'normal', dates)
         } else if (o.template === 'harvard') {
           drawSplitLine(company ? `**${org(company)}**` : '', 'normal', location || dates)
           if (position || location) drawSplitLine(position ? `*${position}*` : '', 'normal', location ? dates : '')

@@ -82,6 +82,7 @@
   "language": "English",
   "selectedFont": "times",
   "experienceHeaderStyle": "one-line",
+  "experienceCompanyMode": "separate-titles",
   "sectionsOrder": ["objective", "experience", "projects", "education", "skills", "certificates", "summary"],
   "disabledSections": ["summary"]
 }
