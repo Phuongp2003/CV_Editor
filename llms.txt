@@ -1,0 +1,79 @@
+# CV Editor
+
+> Free, static, client-only editor for one-page Harvard-style CVs and cover letters, with live PDF preview and a built-in ATS / "AI slop" check. No accounts, no backend: data stays in the user's browser.
+
+This file tells AI assistants and agents how to create or edit a CV in this app for a user.
+The app never calls an AI itself. You (the assistant) write the content; the app renders, checks and exports it.
+
+## Agent Skill (best if your environment supports skills)
+
+[cv-editor-skill.zip](https://cv-editor.fynx.io.vn/cv-editor-skill.zip) unpacks to a `cv-editor/` skill folder: SKILL.md, the writing rules, the schema, and `scripts/cv_tool.py` (decode a `#cv=` link, check a CV for ATS and AI-slop problems, build the hand-off link). Claude Code: unzip into `~/.claude/skills/`. Claude apps: Settings > Capabilities > Skills. Any agent with a shell can also just download it and run the script.
+
+## Files for you
+
+- [Writing rules](https://cv-editor.fynx.io.vn/ai/cv-writing-rules.md): how to write the content (no invented facts, no slop, Harvard layout). Read before writing.
+- [JSON Schema](https://cv-editor.fynx.io.vn/ai/schema.json): the exact payload shape.
+- [Example payload](https://cv-editor.fynx.io.vn/sample.json): a complete real CV in that shape.
+
+## Workflow
+
+1. Get the facts from the user: target role and job description, each job (what was broken, what they did, tools, measurable result), projects, education. Ask in small batches. Never invent numbers, tools, employers or dates.
+2. Write the CV following the writing rules.
+3. Hand it to the user with ONE of the methods below.
+4. Tell the user to open the "Check" panel in the app: it flags ATS and AI-slop issues (uniform "Label:" bullets, buzzwords, skills claimed but never shown, page count, JD terms missing). Fix what it finds.
+
+## Hand-off methods
+
+### A. Link (best for chat assistants)
+
+Give the user a link that opens the app with the CV loaded. The payload lives in the URL fragment (after `#`), which browsers never send to the server.
+
+- If you can run code, build a compact link: raw-deflate the UTF-8 JSON, base64url it, and prefix `z:`.
+
+```python
+import json, zlib, base64
+data = {...}  # the payload
+raw = json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+c = zlib.compressobj(9, zlib.DEFLATED, -15)  # wbits=-15 means raw deflate
+packed = c.compress(raw) + c.flush()
+print("https://cv-editor.fynx.io.vn/#cv=z:" + base64.urlsafe_b64encode(packed).decode().rstrip("="))
+```
+
+- Without compression: `#cv=b64:` + base64url(UTF-8 JSON).
+- Without code: `#cv=` + encodeURIComponent(minified JSON). Long, but works.
+- Add `&mode=merge` at the very end to apply the payload as a patch instead of replacing the whole CV.
+- If the JSON is hosted somewhere public over https (for example a raw GitHub gist), use `#cv-src=<url-encoded https URL>`.
+
+The user can undo an imported link with one click.
+
+### B. Paste (always works)
+
+Output the payload in one fenced json code block. The user copies it and presses Ctrl+V anywhere on the app page (outside a text field). The app detects CV JSON and imports it. A .json file can also be dropped onto the page.
+
+### C. Browser agents
+
+If you control a browser, open https://cv-editor.fynx.io.vn/ and use the JavaScript API instead of filling forms:
+
+```js
+await new Promise(r => { const t = setInterval(() => window.cvEditor && (clearInterval(t), r()), 100) })
+cvEditor.load(payload)          // replace the whole CV (object or JSON string)
+cvEditor.patch({ cv: { objective: "..." } })   // partial update
+cvEditor.audit("<job description text>")       // { score, findings[], stats } ATS + slop check
+cvEditor.pageCount()            // aim for 1; re-read ~1s after a change
+cvEditor.downloadPdf()          // or: await cvEditor.pdfBase64()
+await cvEditor.shareLink()      // compact link that reproduces this CV
+cvEditor.undo()                 // revert the last load/patch
+cvEditor.getState()             // current full state
+```
+
+## Payload essentials
+
+- Top level: `cv` (content), `coverLetter` (optional), and optional layout keys: `template` ("harvard" | "modern"), `language`, `sectionsOrder`, `disabledSections`.
+- Bullets are objects: `{ "id": "short-unique", "type": "l1", "text": "..." }`. `type` is `l1` | `l2` | `l3` | `header`. Text supports `**bold**`, `*italic*`, `<u>underline</u>`.
+- Enable either `objective` or `summary`, not both: put the other in `disabledSections`.
+- In `mode=merge` / `patch`, any `cv` field you send replaces the current value entirely (arrays are replaced, not merged).
+- Dates: one format everywhere, e.g. `07/2025 - Present`.
+
+## Optional
+
+- [Source code](https://github.com/Phuongp2003/CV_Editor)
