@@ -1,0 +1,27 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "fynx-cv-writer",
+  "version": "0.1.8",
+  "description": "Write truthful CV and cover-letter content JSON with separate formatting configuration and role-specific guidance.",
+  "author": {
+    "name": "Pham Bui Nam Phuong"
+  },
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Fynx CV writer",
+        "shortDescription": "Write CV content JSON",
+        "longDescription": "Create or tailor CV and cover-letter content for any candidate, with optional domain skills and web preview handoff. Formatting is configured separately.",
+        "developerName": "Pham Bui Nam Phuong",
+        "category": "Productivity",
+        "capabilities": [
+          "skills"
+        ],
+        "defaultPrompt": [
+          "Write a truthful CV for this job description.",
+          "Create a CV and open it in Fynx CV preview."
+        ]
+      }
+    }
+  }
+}
