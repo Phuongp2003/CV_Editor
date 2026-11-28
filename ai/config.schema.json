@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Fynx CV formatting config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["template", "language", "sizeMultiplier", "selectedFont", "customFontName", "experienceHeaderStyle", "bulletChars", "avatarStyle"],
+  "properties": {
+    "template": { "enum": ["harvard", "modern"], "default": "modern" },
+    "language": { "type": "string", "minLength": 1 },
+    "sizeMultiplier": { "type": "number", "minimum": 0.8, "maximum": 1.6, "default": 1.0 },
+    "selectedFont": { "enum": ["notosans", "times", "arial", "garamond", "custom"], "default": "garamond" },
+    "customFontName": { "type": "string" },
+    "experienceHeaderStyle": { "enum": ["classic", "role-company", "one-line"], "default": "classic" },
+    "bulletChars": { "type": "object", "required": ["l1", "l2", "l3"], "properties": { "l1": { "type": "string" }, "l2": { "type": "string" }, "l3": { "type": "string" } }, "additionalProperties": false },
+    "avatarStyle": { "type": "object", "required": ["shape", "position", "size", "fit"], "properties": { "shape": { "enum": ["square", "rounded", "circle"] }, "position": { "enum": ["left", "right", "center"] }, "size": { "enum": ["sm", "md", "lg"] }, "fit": { "enum": ["cover", "contain"] } }, "additionalProperties": false }
+  }
+}

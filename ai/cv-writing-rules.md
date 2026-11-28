@@ -1,60 +1,41 @@
-# CV writing rules for AI assistants
+# Content contract
 
-Goal: a one-page CV that (1) parses cleanly in ATS, (2) proves the job's requirements with evidence instead of keywords, (3) reads like a specific person describing specific work, and (4) stays 100% truthful.
+`content.json` is the AI writing artifact. It contains no font, template, size or other format option.
 
-## Non-negotiable
+```json
+{
+  "cv": {
+    "name": "Candidate Name",
+    "title": "",
+    "email": "name@example.com",
+    "phone": "+84 ...",
+    "location": "Ho Chi Minh City, Vietnam",
+    "summary": "Role, experience, strongest proof.",
+    "objective": "",
+    "experiences": [{ "position": "Developer", "company": "Example", "location": "", "dates": "01/2024 - 11/2026", "bullets": [{ "id": "e1", "type": "l1", "text": "Action, mechanism and result." }] }],
+    "projects": [{ "projectName": "Named project", "projectLink": "", "overview": "A real description of the product, domain, users, purpose and verified scope.", "dates": "2025 - 2026", "technologies": "C# · Python", "bullets": [{ "id": "p1", "type": "l1", "text": "Candidate's role, contribution and outcome." }] }],
+    "projectIntro": "Selected projects at Example",
+    "skills": [{ "skill": "Backend", "description": "C#, Python" }],
+    "educations": [],
+    "certificates": [],
+    "customSections": [{ "id": "publications", "title": "Publications", "preset": "experience", "experienceStyle": "hierarchy", "showCompanyDates": true, "showPosition": false, "showPositionDates": false, "entries": [{ "position": "Paper title", "positionDates": "", "company": "Venue", "location": "", "dates": "2026", "bullets": [{ "id": "c1", "type": "l1", "text": "Contribution." }] }] }]
+  },
+  "layout": {
+    "sectionsOrder": ["summary", "experience", "skills", "education", "projects", "custom:publications", "page-break", "certificates", "objective"],
+    "disabledSections": ["objective"],
+    "sectionLabels": { "projects": "Selected Projects" }
+  }
+}
+```
+Use the optional `page-break` entry in `layout.sectionsOrder` before a section that should start on a fresh page. It is a layout marker: it adds no heading or content and can be moved in the editor's section list.
+Built-in content sections: `summary`, `objective`, `experience`, `skills`, `education`, `projects`, `certificates`. `page-break` is a layout-only marker and may appear once in `sectionsOrder`. A custom section key is `custom:<id>` and must match one item in `cv.customSections`. Custom sections select a `summary`, `experience`, or `skills` preset. Experience preset entries use company as H2, optionally show company dates, and may show job title as H3 with its own optional dates; put bullets and description under the lowest enabled heading. Other experience styles can inherit the global style or choose classic, role-company, or one-line. Older custom sections without a preset stay on the inherited Experience style. The user may add any number of custom sections. `coverLetter` is optional and follows the website schema.
 
-1. **Never invent facts.** No made-up numbers, tools, versions, employers, dates, team sizes or scope. A fabricated metric collapses in the interview. If a fact is missing, ask the user, or write the bullet without the number.
-2. **Do not overclaim ownership.** Use "led", "designed", "owned" only when the user confirms it. Name what they personally did.
-3. **Slop is low information, not bad vocabulary.** A sentence that could sit unchanged in a stranger's CV is slop. Fix it by restoring specifics (what was broken, what they did, with which tool, what changed), never by swapping synonyms or adding fake roughness.
+Write bullets as context or problem, personal action, mechanism and verifiable result. Prefer named products and concrete behavior. Distinguish shipped work from feature-branch or lab work. Projects are a supporting section for product-level context and evidence; use them for substantial systems even when the work was done at an employer. Each substantial project needs an accurate overview that tells the reader what the real system does, its domain and users, purpose, verified scale/scope and where the candidate worked in it. Use contribution bullets to make personal ownership and outcomes clear. The overview is project context, not a substitute for the candidate's role, and must not repeat Experience bullets.
 
-## Bullets
+Keep section labels editable in `layout.sectionLabels`. Use compact one-word labels by default when the candidate has no preference, and preserve any label the candidate customizes. The candidate's requested section order, length and role grouping override generic defaults. When the candidate asks to group a promotion or internship period under a main role, use one Experience entry and summarize earlier-period work in one bullet while keeping the dates truthful.
 
-- Use bullets for Experience and Projects. Do not use them for the objective, skills or education.
-- 3-5 bullets per role, strongest and most relevant to the target job first. One page total if under ~5 years of experience.
-- Formula: need or problem, then action, then tool or method, then result. Every bullet needs at least a concrete action, a tool and an outcome.
-- Vary length and opening: verb-first, outcome-first ("Login dropped from ~60s to ~5s after..."), or context-first. One short bullet beside two detailed ones is normal.
-- Do NOT put a bold `Label:` prefix on every bullet. Uniform "Label: verb + object + result" is the clearest generated-text pattern.
-- Highlight on purpose: bold 1-2 key phrases per bullet (a measured result or the key technology) and the target-role keywords in the objective. Never bold whole sentences or more than two phrases in one bullet.
-- No number available: describe the concrete before/after (manual to automated, per-request DB calls to one batched query).
-- Prefer "~60s to ~5s" over "from about 60s to about 5s". If the number is reported rather than measured, say so ("reported", "per internal logs").
+Preserve verified titles and dates, then follow the candidate's requested display. If they ask to group a promotion or internship period under one main Experience entry, use one entry and summarize earlier-period work in one clearly worded bullet without implying the later title applied before its verified start date.
 
-## Words to avoid unless a concrete fact sits next to them
+Project order is mandatory: sort the included projects in reverse chronological order by end date, newest first; use the later start date to break ties. Select projects for JD relevance, then restore chronological order. Use verified dates and ask when dates are missing or unclear; never guess. Each project should include a name/date, a real overview of the product/domain/users and known scope, one compact `Technologies:` line with relevant tools, and focused contribution bullets that explain the candidate's role and work. Keep product context in the overview and the candidate's work in the bullets. Do not split one system into unrelated feature-sized projects.
 
-spearheaded, leveraged, utilized, orchestrated, championed, robust, seamless, cutting-edge, passionate, results-driven, detail-oriented, team player, fast learner, proven track record, innovative, "hands-on experience in", "not just X but Y", "high-traffic", em-dashes used for rhythm, triplets used as rhythm.
-Vietnamese: đam mê, năng động, tinh thần cầu tiến, không ngừng học hỏi, môi trường chuyên nghiệp.
-
-## Sections (Harvard order for students and early-career)
-
-1. Name, then one contact line: city, email, phone, GitHub, LinkedIn.
-2. Objective or summary: two lines max. Role + level + 2-3 target technologies + one proof point. Enable only one of the two.
-3. Education (first for students and new graduates; after Experience once work experience is the stronger signal).
-4. Experience: company, location, title, dates, bullets. Reverse chronological.
-   Keep distinct roles at the same company as separate experience records. `experienceCompanyMode` controls display: `separate-titles` shows each role title; `single-title` keeps the first title and folds later roles into their own labeled bullet.
-5. Projects: only ones that add evidence the jobs do not.
-6. Skills: grouped, target stack first. Drop anything the user cannot discuss for 5 minutes. Every key skill should also appear in at least one bullet.
-7. Certifications.
-
-Standard headings only. Single column. No photo unless the employer asks. No skill bars, icons or tables.
-
-## Matching a job description
-
-Split the JD into must-have, nice-to-have and implied requirements. For each must-have, find evidence in the CV:
-
-- **Proven:** a bullet with action and outcome.
-- **Claimed:** only in Skills.
-- **Adjacent:** a close equivalent (Prisma vs Entity Framework).
-- **Absent:** nothing.
-
-Use the JD's exact term where it is true. For Claimed and Absent must-haves, ask the user one targeted question each. Never fill gaps by invention.
-
-## Cover letter
-
-150-250 words. It earns its place by adding what the CV cannot: why this company, why this role, one short story. Opening names the role and company. No "I am writing to apply", no apologies for gaps, no closing platitudes. Research the company if you can; never guess product names.
-
-## Before handing over
-
-- Every number and tool traces back to something the user said.
-- No sentence could be pasted unchanged into a stranger's CV.
-- One date format everywhere. Dates, titles and company names match across CV and letter.
-- List 5-8 interview questions the CV invites, so the user can check they can defend every bullet.
+`layout.sectionsOrder` controls section position, `layout.sectionLabels` controls editable headings, and `page-break` is a layout-only marker inserted before the section that should begin on a new page. Custom sections use `custom:<id>` and one of the supported content presets. These are CV content/layout controls, not formatting config.
