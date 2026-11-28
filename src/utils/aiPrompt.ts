@@ -65,7 +65,7 @@ const TASK_TEXT: Record<AiTask, string> = {
 const RULES = `Writing rules (non-negotiable)
 1. Never invent facts: no made-up numbers, tools, versions, employers, dates, team sizes or scope. If a fact is missing, ask me or write the bullet without it. Do not overclaim ownership ("led", "designed") unless I confirm it.
 2. Slop = low information. A sentence that could sit unchanged in a stranger's CV is slop. Fix it by restoring specifics (what was broken, what I did, which tool, what changed), never by swapping synonyms.
-3. Bullets only in Experience and Projects. 3-5 per role, strongest first. Pattern: need -> action -> tool -> result. Vary length and opening. Do NOT start every bullet with a bold "Label:". Bold 1-2 key phrases per bullet (result or key technology) and the target keywords in the objective.
+3. Projects support Experience and are not limited to school or personal work. For each substantial project, give a real overview of its product/system, domain, users, purpose and verified scope; identify my role in the contribution bullets. Include verified dates and a concise Technologies line. Keep projects newest to oldest by end date, with later start date as the tie-breaker. Do not split one system into feature-sized projects. Bullets in Experience and Projects use need -> action -> tool -> result, 3-5 per role, strongest first. Vary length and opening. Do NOT start every bullet with a bold "Label:". Bold 1-2 key phrases per bullet.
 4. Avoid: spearheaded, leveraged, utilized, orchestrated, robust, seamless, cutting-edge, passionate, results-driven, proven track record, "hands-on experience in", "not just X but Y", em-dashes.
 5. Objective or summary (only one): two lines. Role + level + 2-3 target technologies + one proof point.
 6. Skills grouped, target stack first; every key skill should also appear in a bullet. Drop what I cannot discuss for 5 minutes.
@@ -81,14 +81,16 @@ const SHAPE = `{
     "objective": "", "summary": "",
     "experiences": [{ "position": "", "company": "", "location": "", "dates": "MM/YYYY - Present",
       "bullets": [{ "id": "e1b1", "type": "l1", "text": "plain text, **bold** sparingly" }] }],
-    "projects": [{ "projectName": "", "projectLink": "", "bullets": [{ "id": "p1b1", "type": "l1", "text": "" }] }],
+    "projects": [{ "projectName": "", "projectLink": "", "overview": "What the real product does, its domain, users, purpose and verified scope", "dates": "MM/YYYY - MM/YYYY", "technologies": "C# · SQL Server", "bullets": [{ "id": "p1b1", "type": "l1", "text": "My role, contribution and result" }] }],
+    "customSections": [{ "id": "publications", "title": "Publications", "preset": "experience", "entries": [] }],
     "skills": [{ "skill": "Backend", "description": "C#, ASP.NET Core, ..." }],
     "educations": [{ "university": "", "degree": "", "gpa": "", "graduationDate": "" }],
     "certificates": [{ "certName": "", "issuer/description": "", "certDate": "" }]
   },
   "coverLetter": { "header": { "companyName": "", "recipientName": "", "date": "" },
     "greeting": "", "openingParagraph": "", "bodyParagraphs": [""], "closingParagraph": "", "signOff": "" },
-  "sectionsOrder": ["objective", "education", "experience", "projects", "skills", "certificates"],
+  "sectionsOrder": ["objective", "education", "experience", "page-break", "projects", "skills", "certificates", "custom:publications"],
+  "sectionLabels": { "projects": "Projects" },
   "disabledSections": ["summary"]
 }`
 
@@ -119,11 +121,11 @@ export function buildSkillRequest(p: SkillRequestInput): string {
   const role = AI_ROLES.find((r) => r.id === p.role) ?? AI_ROLES[0]!
   const site = p.siteUrl.replace(/\/+$/, '')
   const lines = [
-    `Use the cv-editor skill (if you do not have it: ${site}/cv-editor-skill.zip?v=1.1.1).`,
+    `Use the cv-editor skill (if you do not have it: ${site}/cv-editor-skill.zip?v=${import.meta.env.VITE_APP_VERSION || '1.1.3'}).`,
     `Task: ${TASK_SHORT[p.task]}`,
     `Field: ${role.label}. CV language: ${p.cvLanguage}. Talk to me in ${p.chatLanguage}.`,
   ]
-  if (p.cvLink) lines.push(`My current CV: ${p.cvLink}`)
+  if (p.cvLink) lines.push(`My current CV preview: ${p.cvLink}`, `If you have a shell, read it with: node <skill>/scripts/fynx-cv.mjs decode "${p.cvLink}". The link is short-lived and anyone with it can view the CV.`)
   if (p.jobDescription.trim()) lines.push('', 'Job description:', p.jobDescription.trim())
   return lines.join('\n')
 }

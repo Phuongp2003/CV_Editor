@@ -41,6 +41,9 @@
             "properties": {
               "projectName": { "type": "string" },
               "projectLink": { "type": "string" },
+              "overview": { "type": "string", "description": "Optional one-sentence context; omit it when it repeats the project bullets." },
+              "dates": { "type": "string", "description": "Verified activity period. Projects are written newest to oldest." },
+              "technologies": { "type": "string", "description": "Concise relevant stack rendered as a Technologies bullet before contributions." },
               "bullets": { "$ref": "#/$defs/bullets" }
             },
             "required": ["projectName", "bullets"]
@@ -79,7 +82,8 @@
               "certDate": { "type": "string" }
             }
           }
-        }
+        },
+        "customSections": { "type": "array", "items": { "$ref": "#/$defs/customSection" } }
       }
     },
     "coverLetter": {
@@ -107,15 +111,10 @@
         "signOff": { "type": "string" }
       }
     },
-    "template": { "enum": ["harvard", "modern"], "default": "harvard" },
+    "template": { "enum": ["harvard", "modern"], "default": "modern" },
     "experienceHeaderStyle": {
       "enum": ["classic", "role-company", "one-line"],
       "description": "classic: COMPANY + location / Title + dates on two lines. one-line: COMPANY | Title + dates, no location."
-    },
-    "experienceCompanyMode": {
-      "enum": ["separate-titles", "single-title"],
-      "default": "separate-titles",
-      "description": "For consecutive roles at one company, show every job title separately, or show only the first title and merge later roles into bullets."
     },
     "language": { "enum": ["English", "Vietnamese", "Japanese", "Korean", "Chinese"] },
     "sectionsOrder": {
@@ -126,7 +125,34 @@
     "disabledSections": { "type": "array", "items": { "$ref": "#/$defs/section" } }
   },
   "$defs": {
-    "section": { "enum": ["summary", "objective", "skills", "experience", "projects", "education", "certificates"] },
+    "section": { "enum": ["summary", "objective", "skills", "experience", "projects", "education", "certificates", "page-break"] },
+    "customEntry": {
+      "type": "object",
+      "properties": {
+        "position": { "type": "string" },
+        "positionDates": { "type": "string" },
+        "company": { "type": "string" },
+        "location": { "type": "string" },
+        "dates": { "type": "string" },
+        "bullets": { "$ref": "#/$defs/bullets" }
+      }
+    },
+    "customSection": {
+      "type": "object",
+      "required": ["id", "title", "entries"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_-]+$" },
+        "title": { "type": "string" },
+        "preset": { "enum": ["summary", "experience", "skills"] },
+        "experienceStyle": { "enum": ["inherit", "hierarchy", "classic", "role-company", "one-line"] },
+        "showCompanyDates": { "type": "boolean" },
+        "showPosition": { "type": "boolean" },
+        "showPositionDates": { "type": "boolean" },
+        "summaryText": { "type": "string" },
+        "skills": { "type": "array", "items": { "type": "object", "properties": { "skill": { "type": "string" }, "description": { "type": "string" } } } },
+        "entries": { "type": "array", "items": { "$ref": "#/$defs/customEntry" } }
+      }
+    },
     "bullets": {
       "type": "array",
       "items": {

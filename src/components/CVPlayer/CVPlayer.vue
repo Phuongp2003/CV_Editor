@@ -38,7 +38,7 @@ const sectionLabels = computed(() => {
   >
   const out = {} as Record<SectionKey, string>
   ;(Object.keys(defaults) as SectionKey[]).forEach((k) => {
-    out[k] = (customSectionLabels.value[k] ?? '').trim() || defaults[k]
+    out[k] = (customSectionLabels.value[k] ?? '').trim() || defaults[k] || cv.value.customSections?.find((section) => `custom:${section.id}` === k)?.title || k
   })
   return out
 })

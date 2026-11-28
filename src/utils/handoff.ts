@@ -1,6 +1,6 @@
 /**
  * Ways an outside AI (chat assistant, coding agent, browser agent) hands a CV to this static site.
- * Link payloads live in the URL fragment (never sent to a server) or as a short share ID (?cv=<id>).
+ * Offline payloads live in URL fragments; short preview links store compressed state in the Share Worker.
  *
  *   ?cv=<short-id>                  short link backed by Cloudflare Worker + D1 (3-day TTL)
  *   #cv=<url-encoded JSON>          easiest for chat assistants
@@ -243,12 +243,9 @@ export async function packState(state: unknown): Promise<string> {
   return bytesToB64url(packed)
 }
 
-/** Builds a compact offline share link (raw deflate + base64url) for the given state. */
+/** Builds a short Worker-backed preview link, with a compressed offline fallback. */
 export async function buildShareLink(state: unknown): Promise<string> {
-  const packed = await packState(state)
-  const base = new URL(window.location.origin + (import.meta.env.BASE_URL || '/'))
-  base.searchParams.set('view', 'preview')
-  return `${base.toString()}#cv=z:${packed}`
+  return (await buildShortShareLink(state)).url
 }
 
 /**

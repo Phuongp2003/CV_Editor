@@ -20,4 +20,6 @@ await new Promise(r => { const t = setInterval(() => window.cvEditor && (clearIn
 | `await cvEditor.shareLink()` | Compact link that reproduces this CV. |
 | `cvEditor.getState()` | Full current state (same shape as the payload). |
 
-Data stays in the user's browser (localStorage). Do not navigate away from a page with unsaved work the user did not ask you to replace; use `patch` for small edits and tell the user they can undo.
+CV content stays in the browser unless the user creates a short share link. Short links store compressed CV data in the Share Worker for three days; anyone with the link can view it. `cvEditor.shareLink()` creates a short preview link and saves it to Share Manager. Do not navigate away from a page with unsaved work the user did not ask you to replace; use `patch` for small edits and tell the user they can undo.
+
+For layout, edit `sectionsOrder` to reorder sections and put `page-break` before a section that should start on a fresh page. Custom section keys use `custom:<id>`; their headings can be renamed through `customSectionLabels`.

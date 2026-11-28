@@ -18,6 +18,8 @@ export type SectionKey =
   | 'projects'
   | 'education'
   | 'certificates'
+  | 'page-break'
+  | `custom:${string}`
 
 /**
  * The rendering modes available for the CV editor form.
@@ -28,9 +30,11 @@ export type EditorMode = 'tabs' | 'outline'
 
 /** How each job's company / title / dates header is laid out. one-line drops the location. */
 export type ExperienceHeaderStyle = 'classic' | 'role-company' | 'one-line'
-
 /** How consecutive roles at one company appear in the exported CV. */
 export type ExperienceCompanyMode = 'separate-titles' | 'single-title'
+
+export type CustomSectionPreset = 'experience' | 'summary' | 'skills'
+export type CustomExperienceStyle = 'inherit' | 'hierarchy' | ExperienceHeaderStyle
 
 /** PDF layout template. */
 export type CvTemplate = 'harvard' | 'modern'
@@ -91,8 +95,33 @@ export interface Project {
   projectName: string
   /** URL or hyperlink to the project. */
   projectLink: string
+  /** Short context describing the product or problem before contribution bullets. */
+  overview?: string
+  /** Display period for a selected project. */
+  dates?: string
+  /** Compact Technologies bullet shown before project accomplishments. */
+  technologies?: string
   /** Bullet points outlining project details and tech stack. */
   bullets: BulletPart[]
+}
+
+/** User-defined section whose content is rendered with a reusable section preset. */
+export interface CustomSectionEntry extends Experience {
+  /** Optional date shown alongside the job title in hierarchy style. */
+  positionDates?: string
+}
+
+export interface CustomSection {
+  id: string
+  title: string
+  preset?: CustomSectionPreset
+  experienceStyle?: CustomExperienceStyle
+  showCompanyDates?: boolean
+  showPosition?: boolean
+  showPositionDates?: boolean
+  summaryText?: string
+  skills?: Skill[]
+  entries: CustomSectionEntry[]
 }
 
 /**
@@ -145,6 +174,8 @@ export interface Certificate {
 export interface CVData {
   /** Candidate full name. */
   name: string
+  /** Role headline printed below the candidate name. */
+  title?: string
   /** Contact email address. */
   email: string
   /** Contact phone number. */
@@ -171,12 +202,15 @@ export interface CVData {
   experiences: Experience[]
   /** List of relevant projects. */
   projects: Project[]
+  /** Optional context line before the selected projects list. */
+  projectIntro?: string
   /** Collection of tech skills. */
   skills: Skill[]
   /** Education background history. */
   educations: Education[]
   /** Professional certifications. */
   certificates: Certificate[]
+  customSections?: CustomSection[]
   /** Base64 profile image source, or null if omitted. */
   profileImage?: string | null
   /** MIME type of the uploaded image. */
@@ -204,12 +238,12 @@ export interface BulletChars {
  */
 export const DEFAULT_SECTIONS_ORDER: SectionKey[] = [
   'summary',
-  'objective',
-  'skills',
   'experience',
-  'projects',
+  'skills',
   'education',
+  'projects',
   'certificates',
+  'objective',
 ]
 
 /**
@@ -225,6 +259,7 @@ export const DEFAULT_SECTION_LABELS: Record<SectionKey, string> = {
   projects: 'Projects',
   education: 'Education',
   certificates: 'Certificates',
+  'page-break': 'Page break',
 }
 
 /**
@@ -242,6 +277,7 @@ export const CV_LANGUAGE_SECTION_LABELS: Record<string, Record<SectionKey, strin
     projects: 'Projects',
     education: 'Education',
     certificates: 'Certificates',
+    'page-break': 'Page break',
   },
   Vietnamese: {
     summary: 'Tóm tắt',
@@ -251,6 +287,7 @@ export const CV_LANGUAGE_SECTION_LABELS: Record<string, Record<SectionKey, strin
     projects: 'Dự án',
     education: 'Học vấn',
     certificates: 'Chứng chỉ',
+    'page-break': 'Ngắt trang',
   },
   Japanese: {
     summary: '要約',
@@ -260,6 +297,7 @@ export const CV_LANGUAGE_SECTION_LABELS: Record<string, Record<SectionKey, strin
     projects: 'プロジェクト',
     education: '学歴',
     certificates: '資格',
+    'page-break': '改ページ',
   },
   Korean: {
     summary: '요약',
@@ -269,6 +307,7 @@ export const CV_LANGUAGE_SECTION_LABELS: Record<string, Record<SectionKey, strin
     projects: '프로젝트',
     education: '학력',
     certificates: '자격증',
+    'page-break': '페이지 나누기',
   },
   Chinese: {
     summary: '个人总结',
@@ -278,6 +317,7 @@ export const CV_LANGUAGE_SECTION_LABELS: Record<string, Record<SectionKey, strin
     projects: '项目经验',
     education: '教育背景',
     certificates: '荣誉证书',
+    'page-break': '分页符',
   },
 }
 

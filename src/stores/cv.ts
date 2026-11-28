@@ -107,6 +107,7 @@ function parseBulletsToParts(bullets: unknown): BulletPart[] {
 
 const EMPTY_CV: CVData = {
   name: '',
+  title: '',
   email: '',
   phone: '',
   location: '',
@@ -124,6 +125,7 @@ const EMPTY_CV: CVData = {
   projects: [
     { projectName: '', projectLink: '', bullets: [] },
   ],
+  projectIntro: '',
   skills: [
     { skill: '', description: '' },
   ],
@@ -133,6 +135,7 @@ const EMPTY_CV: CVData = {
   certificates: [
     { certName: '', 'issuer/description': '', certDate: '' },
   ],
+  customSections: [],
 }
 
 const EMPTY_COVER_LETTER: CoverLetterData = {
@@ -210,9 +213,9 @@ export const useCVStore = defineStore('cv', () => {
   const coverLetterData = ref<CoverLetterData>({ ...EMPTY_COVER_LETTER })
 
   /** General scaling multiplier for fonts and margins in output PDF/DOCX files. */
-  const sizeMultiplier = ref(Number(getLocal('cv_sizeMultiplier', '1.0')))
-  /** Font family selection. Defaults to 'notosans'. */
-  const selectedFont = ref<string>(normalizeFontChoice(getLocal('cv_selectedFont', 'times')))
+  const sizeMultiplier = ref(Number(getLocal('cv_sizeMultiplier', '1')))
+  /** Font family selection. Defaults to the v1.0.1 NotoSans/Calibri face. */
+  const selectedFont = ref<string>(normalizeFontChoice(getLocal('cv_selectedFont', 'garamond')))
   /** Optional custom font family name to render in PDF/DOCX (system fonts). */
   const customFontName = ref(getLocal('cv_customFontName', ''))
   /** Target language of the CV contents. */
@@ -225,12 +228,12 @@ export const useCVStore = defineStore('cv', () => {
   /** Order of CV sections layout. */
   const sectionsOrder = ref<SectionKey[]>(getLocalJson<SectionKey[]>('cv_sectionsOrder', [...DEFAULT_SECTIONS_ORDER]))
   /** List of hidden CV sections. */
-  const disabledSections = ref<SectionKey[]>(getLocalJson<SectionKey[]>('cv_disabledSections', ['summary']))
+  const disabledSections = ref<SectionKey[]>(getLocalJson<SectionKey[]>('cv_disabledSections', ['objective']))
   /** Experience header layout ('classic' | 'role-company' | 'one-line'). */
   const experienceHeaderStyle = ref<ExperienceHeaderStyle>(getLocal('cv_experienceHeaderStyle', 'classic') as ExperienceHeaderStyle)
   const experienceCompanyMode = ref<ExperienceCompanyMode>(getLocal('cv_experienceCompanyMode', 'separate-titles') as ExperienceCompanyMode)
-  /** PDF layout: 'harvard' (centered headings, serif, ragged-right) or 'modern' (the original layout). */
-  const template = ref<CvTemplate>((getLocal('cv_template', 'harvard') as CvTemplate) || 'harvard')
+  /** PDF layout: 'modern' preserves the original v1.0.1 output; 'harvard' remains an alternate. */
+  const template = ref<CvTemplate>((getLocal('cv_template', 'modern') as CvTemplate) || 'modern')
   /** Target job description, used by the CV check for keyword evidence. */
   const jobDescription = ref(getLocal('cv_jobDescription', ''))
   /** Page count of the last rendered PDF (filled by the renderer). */
@@ -321,6 +324,14 @@ export const useCVStore = defineStore('cv', () => {
    */
   function loadCv(data: Record<string, unknown>) {
     if (!data) return
+    if (data.content && typeof data.content === 'object') {
+      const content = data.content as Record<string, unknown>
+      const layout = (content.layout ?? {}) as Record<string, unknown>
+      data = { ...content, ...layout, customSectionLabels: layout.sectionLabels, ...((data.config as Record<string, unknown>) ?? {}) }
+    } else if (data.layout && typeof data.layout === 'object') {
+      const layout = data.layout as Record<string, unknown>
+      data = { ...data, ...layout, customSectionLabels: layout.sectionLabels }
+    }
     const source = (data.cv ?? data) as Record<string, unknown>
 
     const rawExp = Array.isArray(source.experiences)
@@ -340,11 +351,15 @@ export const useCVStore = defineStore('cv', () => {
     const projects: Project[] = rawProj.map((proj) => ({
       projectName: proj.projectName || '',
       projectLink: proj.projectLink || '',
+      overview: proj.overview || '',
+      dates: proj.dates || '',
+      technologies: proj.technologies || '',
       bullets: parseBulletsToParts(proj.bullets),
     }))
 
     cvData.value = {
       name: (source.name as string) || '',
+      title: (source.title as string) || '',
       email: (source.email as string) || '',
       phone: (source.phone as string) || '',
       location: (source.location as string) || '',
@@ -358,12 +373,42 @@ export const useCVStore = defineStore('cv', () => {
       objective: (source.objective as string) || '',
       experiences,
       projects,
+      projectIntro: (source.projectIntro as string) || '',
       skills: Array.isArray(source.skills) ? JSON.parse(JSON.stringify(source.skills)) : [],
       educations: Array.isArray(source.educations)
         ? JSON.parse(JSON.stringify(source.educations))
         : [],
       certificates: Array.isArray(source.certificates)
         ? JSON.parse(JSON.stringify(source.certificates))
+        : [],
+      customSections: Array.isArray(source.customSections)
+        ? source.customSections.map((section: any) => ({
+            id: String(section.id || generateId()),
+            title: String(section.title || 'Custom Section'),
+            preset: ['experience', 'summary', 'skills'].includes(section.preset) ? section.preset : 'experience',
+            experienceStyle: ['inherit', 'hierarchy', 'classic', 'role-company', 'one-line'].includes(section.experienceStyle)
+              ? section.experienceStyle
+              : section.preset
+                ? 'hierarchy'
+                : 'inherit',
+            showCompanyDates: typeof section.showCompanyDates === 'boolean' ? section.showCompanyDates : true,
+            showPosition: typeof section.showPosition === 'boolean'
+              ? section.showPosition
+              : !section.preset && Array.isArray(section.entries) && section.entries.some((entry: any) => String(entry.position || '').trim()),
+            showPositionDates: typeof section.showPositionDates === 'boolean' ? section.showPositionDates : false,
+            summaryText: String(section.summaryText || ''),
+            skills: Array.isArray(section.skills) ? JSON.parse(JSON.stringify(section.skills)) : [],
+            entries: Array.isArray(section.entries)
+              ? section.entries.map((entry: any) => ({
+                  position: String(entry.position || ''),
+                  company: String(entry.company || ''),
+                  location: String(entry.location || ''),
+                  dates: String(entry.dates || ''),
+                  positionDates: String(entry.positionDates || ''),
+                  bullets: parseBulletsToParts(entry.bullets),
+                }))
+              : [],
+          }))
         : [],
       profileImage: (source.profileImage as string | null) ?? null,
       profileImageType: (source.profileImageType as string | null) ?? null,
@@ -405,7 +450,7 @@ export const useCVStore = defineStore('cv', () => {
       }
       disabledSections.value = ds
     } else {
-      disabledSections.value = ['summary']
+      disabledSections.value = ['objective']
     }
 
     if (data.bulletChars && typeof data.bulletChars === 'object') {
@@ -477,6 +522,49 @@ export const useCVStore = defineStore('cv', () => {
    */
   function updateSectionLabel(key: string, value: string) {
     customSectionLabels.value[key] = value
+    if (key.startsWith('custom:')) {
+      const section = cvData.value.customSections?.find((item) => `custom:${item.id}` === key)
+      if (section) section.title = value
+    }
+  }
+
+  function addCustomSection(title = 'Custom Section') {
+    const id = generateId()
+    cvData.value.customSections ??= []
+    cvData.value.customSections.push({
+      id,
+      title,
+      preset: 'experience',
+      experienceStyle: 'hierarchy',
+      showCompanyDates: true,
+      showPosition: false,
+      showPositionDates: false,
+      summaryText: '',
+      skills: [],
+      entries: [],
+    })
+    const key = `custom:${id}` as SectionKey
+    sectionsOrder.value.push(key)
+    activeSectionTab.value = key
+  }
+
+  function removeCustomSection(key: SectionKey) {
+    if (!key.startsWith('custom:')) return
+    cvData.value.customSections = cvData.value.customSections?.filter((item) => `custom:${item.id}` !== key)
+    sectionsOrder.value = sectionsOrder.value.filter((item) => item !== key)
+    disabledSections.value = disabledSections.value.filter((item) => item !== key)
+    delete customSectionLabels.value[key]
+    activeSectionTab.value = 'personal'
+  }
+
+  function addPageBreak() {
+    if (!sectionsOrder.value.includes('page-break')) sectionsOrder.value.push('page-break')
+    activeSectionTab.value = 'page-break'
+  }
+
+  function removePageBreak() {
+    sectionsOrder.value = sectionsOrder.value.filter((item) => item !== 'page-break')
+    activeSectionTab.value = 'personal'
   }
 
   /**
@@ -591,6 +679,37 @@ export const useCVStore = defineStore('cv', () => {
     )
   }
 
+  /** AI-facing content includes section order and labels, never typography options. */
+  function exportContent(): Record<string, unknown> {
+    return JSON.parse(JSON.stringify({
+      cv: cvData.value,
+      coverLetter: coverLetterData.value,
+      layout: {
+        sectionsOrder: sectionsOrder.value,
+        disabledSections: disabledSections.value,
+        sectionLabels: customSectionLabels.value,
+      },
+    }))
+  }
+
+  function exportConfig(): Record<string, unknown> {
+    return JSON.parse(JSON.stringify({
+      template: template.value,
+      language: language.value,
+      sizeMultiplier: sizeMultiplier.value,
+      selectedFont: selectedFont.value,
+      customFontName: customFontName.value,
+      experienceHeaderStyle: experienceHeaderStyle.value,
+      experienceCompanyMode: experienceCompanyMode.value,
+      bulletChars: bulletChars.value,
+      avatarStyle: avatarStyle.value,
+    }))
+  }
+
+  function exportHandoff(): Record<string, unknown> {
+    return { content: exportContent(), config: exportConfig() }
+  }
+
   /** Previous state kept so an outside import (AI link, paste, API) can be undone once. */
   const undoSnapshot = ref<Record<string, unknown> | null>(null)
 
@@ -599,6 +718,11 @@ export const useCVStore = defineStore('cv', () => {
    * 'merge' treats the payload as a patch: given cv fields replace current ones, the rest stay.
    */
   function applyExternal(data: Record<string, unknown>, mode: 'replace' | 'merge' = 'replace') {
+    if (data.content && typeof data.content === 'object') {
+      const content = data.content as Record<string, unknown>
+      const layout = (content.layout ?? {}) as Record<string, unknown>
+      data = { ...content, ...layout, customSectionLabels: layout.sectionLabels, ...((data.config as Record<string, unknown>) ?? {}) }
+    }
     const before = exportState()
     undoSnapshot.value = before
     if (mode === 'replace') {
@@ -695,6 +819,9 @@ export const useCVStore = defineStore('cv', () => {
     pdfPageCount,
     undoSnapshot,
     exportState,
+    exportContent,
+    exportConfig,
+    exportHandoff,
     applyExternal,
     undoExternal,
     restoreAutosave,
@@ -702,6 +829,10 @@ export const useCVStore = defineStore('cv', () => {
     loadCv,
     loadSample,
     updateSectionLabel,
+    addCustomSection,
+    removeCustomSection,
+    addPageBreak,
+    removePageBreak,
     toggleSection,
     isSectionEnabled,
     triggerDownload,

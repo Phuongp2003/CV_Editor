@@ -5,7 +5,8 @@
  */
 import type { useCVStore } from '@/stores/cv'
 import { auditCv } from '@/utils/cvAudit'
-import { buildShareLink, parseCvJsonText } from '@/utils/handoff'
+import { parseCvJsonText } from '@/utils/handoff'
+import { useShareManager } from '@/composables/useShareManager'
 
 type Store = ReturnType<typeof useCVStore>
 
@@ -29,13 +30,14 @@ export interface CvEditorApi {
   pdfBase64(): Promise<string | null>
   /** Trigger the PDF download in the browser. */
   downloadPdf(): void
-  /** Compact link that reproduces this CV when opened. */
+  /** Short preview link; the Worker stores the CV for three days. Anyone with the link can view it. */
   shareLink(): Promise<string>
 }
 
 export function installAgentApi(store: Store) {
   const toObj = (d: Record<string, unknown> | string) => (typeof d === 'string' ? parseCvJsonText(d) : d)
   const base = import.meta.env.BASE_URL || '/'
+  const { createAndSaveShare } = useShareManager()
 
   const api: CvEditorApi = {
     version: import.meta.env.VITE_APP_VERSION || 'dev',
@@ -77,7 +79,7 @@ export function installAgentApi(store: Store) {
       return btoa(bin)
     },
     downloadPdf: () => store.triggerDownload(),
-    shareLink: () => buildShareLink(store.exportState()),
+    shareLink: async () => (await createAndSaveShare(store.exportState(), store.cvData.name || 'Current CV')).url,
   }
 
   ;(window as unknown as { cvEditor: CvEditorApi }).cvEditor = api

@@ -9,14 +9,15 @@ import {
   TabStopType,
   TabStopPosition,
 } from 'docx'
-import type { CVData, CoverLetterData, ExperienceCompanyMode } from '@/types/cv'
+import type { CVData, CoverLetterData } from '@/types/cv'
 import { cleanUrl, parseRichText } from '@/utils/richText'
 
 /** Maps the PDF font choice to a font Word is likely to have. */
 function docxFontName(selectedFont: string, customFontName?: string): string {
+  if (selectedFont === 'notosans') return 'Calibri'
   if (selectedFont === 'arial') return 'Arial'
   if (selectedFont === 'custom' && customFontName?.trim()) return customFontName.trim()
-  if (selectedFont === 'garamond' || selectedFont === 'notosans') return 'Garamond'
+  if (selectedFont === 'garamond') return 'EB Garamond'
   return 'Times New Roman'
 }
 
@@ -52,7 +53,8 @@ interface ExportDocxOptions {
   bulletChars?: { l1: string; l2: string; l3: string }
   /** Experience header layout; one-line = COMPANY | Title + dates, no location. */
   experienceHeaderStyle?: 'classic' | 'role-company' | 'one-line'
-  experienceCompanyMode?: ExperienceCompanyMode
+  /** Whether consecutive roles at one company render as separate titles or one grouped entry. */
+  experienceCompanyMode?: 'separate-titles' | 'single-title'
   /** 'harvard' uses a thin black rule under headings; 'modern' a thicker grey one. */
   template?: 'harvard' | 'modern'
   /** Typography sizing overrides. */
@@ -128,7 +130,6 @@ export async function exportDocx({
   bulletChars = { l1: '•', l2: '◦', l3: '▪' },
   typography,
   experienceHeaderStyle = 'classic',
-  experienceCompanyMode = 'separate-titles',
   template = 'harvard',
 }: ExportDocxOptions): Promise<Blob> {
   const resolvedLabels = { ...DEFAULT_LABELS, ...labels }
@@ -141,6 +142,8 @@ export async function exportDocx({
   const harvard = template === 'harvard'
 
   const children: any[] = []
+  let pageBreakPending = false
+  let hasRenderedSection = false
 
   // 1. Name Header
   if (cv.name?.trim()) {
@@ -158,6 +161,13 @@ export async function exportDocx({
         ],
       }),
     )
+  }
+  if (cv.title?.trim()) {
+    children.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 60 },
+      children: [new TextRun({ text: cv.title.trim(), size: bodySize + 2, font: fontName })],
+    }))
   }
 
   // 2. Personal Info line 1: location | email | phone
@@ -287,6 +297,7 @@ export async function exportDocx({
     children.push(
       new Paragraph({
         spacing: { before: 240, after: 100 },
+        pageBreakBefore: pageBreakPending && hasRenderedSection,
         alignment: AlignmentType.LEFT,
         border: {
           bottom: {
@@ -298,7 +309,7 @@ export async function exportDocx({
         },
         children: [
           new TextRun({
-            text: title.toUpperCase(),
+            text: title,
             bold: true,
             size: titleSize,
             font: fontName,
@@ -306,10 +317,16 @@ export async function exportDocx({
         ],
       }),
     )
+    pageBreakPending = false
+    hasRenderedSection = true
   }
 
   // Loop through sectionsOrder and render active sections
   sectionsOrder.forEach((secKey) => {
+    if (secKey === 'page-break') {
+      pageBreakPending = true
+      return
+    }
     if (disabledSections.includes(secKey)) return
 
     if (secKey === 'summary' && cv.summary?.trim()) {
@@ -369,43 +386,20 @@ export async function exportDocx({
           const posStr = entry.position?.trim() || ''
           const datesStr = entry.dates?.trim() || ''
           const locStr = entry.location?.trim() || ''
-          const previousCompany = activeExps[index - 1]?.company?.trim() || ''
-          const sameCompany = !!companyStr && previousCompany.toLowerCase() === companyStr.toLowerCase()
-          const groupedContinuation = sameCompany && experienceCompanyMode === 'single-title'
-          const roleLabel = [posStr, datesStr].filter(Boolean).join(' · ')
-          const bulletRows = (entry.bullets || []).map((bullet) => ({ ...bullet }))
-          let roleBulletIndex = -1
-          if (groupedContinuation && roleLabel) {
-            roleBulletIndex = bulletRows.findIndex((bullet) => bullet.type !== 'header' && bullet.text?.trim())
-            if (roleBulletIndex >= 0) {
-              bulletRows[roleBulletIndex]!.text = `**${roleLabel}:** ${bulletRows[roleBulletIndex]!.text}`
-            } else {
-              roleBulletIndex = bulletRows.length
-              bulletRows.push({ id: `role-${index}`, type: 'l1', text: `**${roleLabel}**` })
-            }
-          }
 
-          if (index > 0 && !sameCompany) {
+          if (index > 0) {
             // Spacer between experience items
             children.push(new Paragraph({ spacing: { before: 120 } }))
           }
 
-          if (groupedContinuation) {
-            // Keep one company title; the continuation role is prefixed to its first bullet.
-          } else if (sameCompany) {
-            const leftRuns = posStr
-              ? createRichTextRuns(posStr, fontName, bodySize, { defaultBold: true })
-              : []
-            const rightRuns = datesStr ? [new TextRun({ text: datesStr, font: fontName, size: bodySize })] : []
-            children.push(createTabbedLine(leftRuns, rightRuns, 40))
-          } else if (experienceHeaderStyle === 'one-line') {
+          if (experienceHeaderStyle === 'one-line') {
             const leftRuns = []
-            if (companyStr) leftRuns.push(new TextRun({ text: companyStr.toUpperCase(), bold: true, font: fontName, size: bodySize }))
+            if (companyStr) leftRuns.push(new TextRun({ text: companyStr, bold: true, font: fontName, size: bodySize }))
             if (companyStr && posStr) leftRuns.push(new TextRun({ text: '  |  ', font: fontName, size: bodySize }))
             if (posStr) leftRuns.push(new TextRun({ text: posStr, italics: true, font: fontName, size: bodySize }))
             const rightRuns = datesStr ? [new TextRun({ text: datesStr, font: fontName, size: bodySize })] : []
             children.push(createTabbedLine(leftRuns, rightRuns, 40))
-          } else if (!sameCompany && experienceHeaderStyle === 'role-company') {
+          } else if (experienceHeaderStyle === 'role-company') {
             const leftRuns = []
             if (posStr) {
               leftRuns.push(
@@ -445,14 +439,14 @@ export async function exportDocx({
             children.push(
               createTabbedLine(leftRuns, rightRuns, 40),
             )
-          } else if (!sameCompany) {
+          } else {
             // Classic style
             // Company Name & Location on left, Dates on right (2-column table)
             const leftRuns = []
             if (companyStr) {
               leftRuns.push(
                 new TextRun({
-                  text: companyStr.toUpperCase(),
+                  text: companyStr,
                   bold: true,
                   font: fontName,
                   size: bodySize,
@@ -501,9 +495,9 @@ export async function exportDocx({
           }
 
           // Bullets
-          if (bulletRows.length) {
-            const hasHeader = bulletRows.some((b) => b.type === 'header' && b.text?.trim())
-            bulletRows.forEach((bullet, bulletIndex) => {
+          if (entry.bullets?.length) {
+            const hasHeader = entry.bullets.some((b) => b.type === 'header' && b.text?.trim())
+            entry.bullets.forEach((bullet) => {
               const textVal = bullet.text?.trim()
               if (!textVal) return
 
@@ -525,10 +519,6 @@ export async function exportDocx({
                 } else if (bullet.type === 'l3') {
                   level = 3
                   bulletChar = bulletChars.l3 || '▪'
-                }
-                if (groupedContinuation && roleBulletIndex >= 0 && bulletIndex !== roleBulletIndex) {
-                  level = Math.min(3, level + 1) as 1 | 2 | 3
-                  bulletChar = level === 2 ? bulletChars.l2 || '◦' : bulletChars.l3 || '▪'
                 }
 
                 const baseIndent = hasHeader ? 180 : 0
@@ -566,6 +556,7 @@ export async function exportDocx({
       )
       if (activeProjs.length > 0) {
         addSectionTitle(resolvedLabels.projects)
+        if (cv.projectIntro?.trim()) children.push(new Paragraph({ children: createRichTextRuns(`**${cv.projectIntro.trim()}**`, fontName, bodySize) }))
         activeProjs.forEach((entry, index) => {
           const nameStr = entry.projectName?.trim() || ''
           const linkStr = entry.projectLink?.trim() || ''
@@ -579,7 +570,7 @@ export async function exportDocx({
           if (nameStr) {
             leftRuns.push(
               new TextRun({
-                text: nameStr.toUpperCase(),
+                text: nameStr,
                 bold: true,
                 font: fontName,
                 size: bodySize,
@@ -588,7 +579,8 @@ export async function exportDocx({
           }
 
           const rightRuns = []
-          if (linkStr) {
+          if (entry.dates?.trim()) rightRuns.push(new TextRun({ text: entry.dates.trim(), font: fontName, size: bodySize }))
+          else if (linkStr) {
             rightRuns.push(
               new ExternalHyperlink({
                 children: [
@@ -608,6 +600,25 @@ export async function exportDocx({
           children.push(
             createTabbedLine(leftRuns, rightRuns, 60),
           )
+          if (entry.overview?.trim()) children.push(new Paragraph({ children: createRichTextRuns(entry.overview.trim(), fontName, bodySize) }))
+          if (entry.dates?.trim() && linkStr) {
+            children.push(new Paragraph({ children: [new ExternalHyperlink({
+              children: [new TextRun({ text: linkStr, font: fontName, size: bodySize - 2, color: '115BCA', underline: {} })],
+              link: cleanUrl(linkStr),
+            })] }))
+          }
+          if (entry.technologies?.trim()) {
+            children.push(
+              new Paragraph({
+                indent: { left: 360, hanging: 180 },
+                spacing: { before: 40, after: 40 },
+                children: [
+                  new TextRun({ text: (bulletChars.l1 || '•') + '   ', font: fontName, size: bodySize }),
+                  ...createRichTextRuns(`**Technologies:** ${entry.technologies.trim()}`, fontName, bodySize),
+                ],
+              }),
+            )
+          }
 
           // Bullets
           if (entry.bullets?.length) {
@@ -787,6 +798,66 @@ export async function exportDocx({
             )
           }
         })
+      }
+    }
+
+    if (secKey.startsWith('custom:')) {
+      const section = cv.customSections?.find((item) => `custom:${item.id}` === secKey)
+      const preset = section?.preset ?? 'experience'
+      const hasContent = preset === 'summary'
+        ? !!section?.summaryText?.trim()
+        : preset === 'skills'
+          ? !!section?.skills?.some((skill) => skill.skill.trim() || skill.description.trim())
+          : !!section?.entries.length
+      if (section && hasContent) {
+        addSectionTitle(labels[secKey] || section.title)
+        if (preset === 'summary') {
+          children.push(new Paragraph({ spacing: { after: 60 }, children: createRichTextRuns(section.summaryText!.trim(), fontName, bodySize) }))
+        } else if (preset === 'skills') {
+          section.skills?.forEach((skill) => {
+            const runs = skill.skill.trim()
+              ? [new TextRun({ text: `${skill.skill.trim()}: `, bold: true, font: fontName, size: bodySize }), ...createRichTextRuns(skill.description, fontName, bodySize)]
+              : createRichTextRuns(skill.description, fontName, bodySize)
+            if (runs.length) children.push(new Paragraph({ spacing: { after: 30 }, children: runs }))
+          })
+        } else {
+          const style = section.experienceStyle ?? (section.preset ? 'hierarchy' : 'inherit')
+          const appendBullets = (bullets: CVData['experiences'][number]['bullets']) => bullets.forEach((bullet) => {
+            if (!bullet.text.trim()) return
+            const glyph = bullet.type === 'l2' ? bulletChars.l2 : bullet.type === 'l3' ? bulletChars.l3 : bulletChars.l1
+            children.push(new Paragraph({
+              indent: bullet.type === 'header' ? undefined : { left: bullet.type === 'l3' ? 720 : bullet.type === 'l2' ? 540 : 360, hanging: 180 },
+              children: [new TextRun({ text: bullet.type === 'header' ? '' : `${glyph}   `, font: fontName, size: bodySize }), ...createRichTextRuns(bullet.text, fontName, bodySize)],
+            }))
+          })
+          section.entries.forEach((entry, index) => {
+            if (index > 0) children.push(new Paragraph({ spacing: { before: 80 } }))
+            if (style === 'hierarchy') {
+              const company = [entry.company.trim(), entry.location.trim()].filter(Boolean).join(', ')
+              const companyDate = section.showCompanyDates === false ? '' : entry.dates.trim()
+              children.push(createTabbedLine(company ? [new TextRun({ text: company, bold: true, font: fontName, size: bodySize })] : [], companyDate ? [new TextRun({ text: companyDate, font: fontName, size: bodySize })] : [], 40))
+              if ((section.showPosition ?? false) && entry.position.trim()) {
+                const positionDate = section.showPositionDates ? entry.positionDates?.trim() || '' : ''
+                children.push(createTabbedLine([new TextRun({ text: entry.position.trim(), bold: true, font: fontName, size: bodySize })], positionDate ? [new TextRun({ text: positionDate, font: fontName, size: bodySize })] : [], 40))
+              }
+            } else {
+              const effectiveStyle = style === 'inherit' ? experienceHeaderStyle ?? 'classic' : style
+              const title = entry.position.trim()
+              const company = [entry.company.trim(), entry.location.trim()].filter(Boolean).join(', ')
+              if (effectiveStyle === 'one-line') {
+                const head = [company, title].filter(Boolean).join(' | ')
+                children.push(createTabbedLine(head ? [new TextRun({ text: head, bold: true, font: fontName, size: bodySize })] : [], entry.dates ? [new TextRun({ text: entry.dates, font: fontName, size: bodySize })] : [], 40))
+              } else if (effectiveStyle === 'role-company') {
+                const head = [title, company].filter(Boolean).join(', ')
+                children.push(createTabbedLine(head ? [new TextRun({ text: head, bold: true, font: fontName, size: bodySize })] : [], entry.dates ? [new TextRun({ text: entry.dates, font: fontName, size: bodySize })] : [], 40))
+              } else {
+                children.push(createTabbedLine(company ? [new TextRun({ text: company, bold: true, font: fontName, size: bodySize })] : [], entry.dates ? [new TextRun({ text: entry.dates, font: fontName, size: bodySize })] : [], 40))
+                if (title) children.push(new Paragraph({ spacing: { after: 30 }, children: [new TextRun({ text: title, italics: true, font: fontName, size: bodySize })] }))
+              }
+            }
+            appendBullets(entry.bullets)
+          })
+        }
       }
     }
   })

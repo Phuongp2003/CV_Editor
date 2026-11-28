@@ -1,6 +1,6 @@
 # CV writing rules for AI assistants
 
-Goal: a one-page CV that (1) parses cleanly in ATS, (2) proves the job's requirements with evidence instead of keywords, (3) reads like a specific person describing specific work, and (4) stays 100% truthful.
+Goal: a concise one- or two-page CV that (1) parses cleanly in ATS, (2) proves the job's requirements with evidence instead of keywords, (3) reads like a specific person describing specific work, and (4) stays 100% truthful.
 
 ## Non-negotiable
 
@@ -11,13 +11,15 @@ Goal: a one-page CV that (1) parses cleanly in ATS, (2) proves the job's require
 ## Bullets
 
 - Use bullets for Experience and Projects. Do not use them for the objective, skills or education.
-- 3-5 bullets per role, strongest and most relevant to the target job first. One page total if under ~5 years of experience.
+- 3-5 bullets per role, strongest and most relevant to the target job first. Preserve verified titles and dates, while following the candidate's requested display: if they ask to group an internship or promotion with a main role, use one Experience entry and summarize the earlier period in one bullet without implying the later title applied too early.
+- Projects must be listed in reverse chronological order by end date, newest first. Select for role relevance, then sort by verified dates; ask if dates are missing or ambiguous rather than guessing.
+- Projects are a supporting section for substantial products and systems, including employer work; they are not limited to personal or school projects. For each selected project, include its name and verified dates, a real overview of the product/system, domain, users, purpose and known scope, one compact `Technologies:` line, then focused bullets that explain the candidate's role and contribution. Keep product context in the overview and personal work in the bullets.
 - Formula: need or problem, then action, then tool or method, then result. Every bullet needs at least a concrete action, a tool and an outcome.
-- Vary length and opening: verb-first, outcome-first ("Login dropped from ~60s to ~5s after..."), or context-first. One short bullet beside two detailed ones is normal.
+- Vary length and opening: verb-first, outcome-first ("Login dropped from ~30s to ~5s after..."), or context-first. One short bullet beside two detailed ones is normal.
 - Do NOT put a bold `Label:` prefix on every bullet. Uniform "Label: verb + object + result" is the clearest generated-text pattern.
 - Highlight on purpose: bold 1-2 key phrases per bullet (a measured result or the key technology) and the target-role keywords in the objective. Never bold whole sentences or more than two phrases in one bullet.
 - No number available: describe the concrete before/after (manual to automated, per-request DB calls to one batched query).
-- Prefer "~60s to ~5s" over "from about 60s to about 5s". If the number is reported rather than measured, say so ("reported", "per internal logs").
+- Prefer a compact before/after such as "~30s to ~5s" when the user confirms both values. If the number is reported rather than measured, say so ("reported"); do not imply internal logs without evidence.
 
 ## Words to avoid unless a concrete fact sits next to them
 
@@ -26,16 +28,19 @@ Vietnamese: đam mê, năng động, tinh thần cầu tiến, không ngừng h�
 
 ## Sections (Harvard order for students and early-career)
 
+Custom sections choose a `summary`, `experience`, or `skills` preset. In the experience hierarchy preset, the company is always H2; company dates, job title as H3, and job-title dates are independently toggled. Keep the entry description and bullets below the smallest enabled heading. Other experience presets can inherit the global header style or use classic, role-company, or one-line.
+
 1. Name, then one contact line: city, email, phone, GitHub, LinkedIn.
 2. Objective or summary: two lines max. Role + level + 2-3 target technologies + one proof point. Enable only one of the two.
 3. Education (first for students and new graduates; after Experience once work experience is the stronger signal).
 4. Experience: company, location, title, dates, bullets. Reverse chronological.
-   Keep distinct roles at the same company as separate experience records. `experienceCompanyMode` controls display: `separate-titles` shows each role title; `single-title` keeps the first title and folds later roles into their own labeled bullet.
-5. Projects: only ones that add evidence the jobs do not.
+5. Projects: selected employer and personal systems that add product context and evidence to Experience; sort by verified dates and start the list on page two when the CV has several substantial projects.
 6. Skills: grouped, target stack first. Drop anything the user cannot discuss for 5 minutes. Every key skill should also appear in at least one bullet.
 7. Certifications.
 
-Standard headings only. Single column. No photo unless the employer asks. No skill bars, icons or tables.
+Use short one-word section headings by default, while preserving editable custom labels and any longer heading the candidate chooses. Single column. No photo unless the employer asks. No skill bars, icons or tables.
+
+`layout.sectionsOrder` controls the section sequence; `layout.sectionLabels` renames headings. Add `page-break` immediately before the section that should begin on a new page. Custom section keys use `custom:<id>` and one of the supported presets. Keep these layout choices in content JSON, separate from typography config.
 
 ## Matching a job description
 

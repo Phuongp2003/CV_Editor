@@ -2,15 +2,16 @@
 import { ref, nextTick } from 'vue'
 import { useCVStore } from '@/stores/cv'
 import { useI18n } from '@/composables/useI18n'
-import { useAudit } from '@/composables/useAudit'
 import { CV_LANGUAGE_SECTION_LABELS } from '@/types/cv'
 import type { SectionKey } from '@/types/cv'
 
 const store = useCVStore()
 const { t } = useI18n()
-const { countBySection } = useAudit()
+const props = withDefaults(defineProps<{ touchControls?: boolean }>(), { touchControls: false })
+const emit = defineEmits<{ (event: 'close-manager'): void }>()
+const renameInput = ref<HTMLInputElement>()
 
-const ICONS: Record<SectionKey | 'personal', string> = {
+const ICONS: Record<string, string> = {
   personal: 'i-lucide-user-round',
   summary: 'i-lucide-align-left',
   objective: 'i-lucide-target',
@@ -19,19 +20,21 @@ const ICONS: Record<SectionKey | 'personal', string> = {
   projects: 'i-lucide-folder-git-2',
   education: 'i-lucide-graduation-cap',
   certificates: 'i-lucide-award',
+  'page-break': 'i-lucide-file-minus-2',
 }
 
 function label(key: SectionKey): string {
   const custom = store.customSectionLabels[key]?.trim()
   if (custom) return custom
   const defaults = CV_LANGUAGE_SECTION_LABELS[store.language] || CV_LANGUAGE_SECTION_LABELS.English
-  return defaults?.[key] || key
+  return defaults?.[key] || store.cvData.customSections?.find((section) => `custom:${section.id}` === key)?.title || key
 }
 
-const enabled = (k: SectionKey) => !store.disabledSections.includes(k)
+const enabled = (k: SectionKey) => k === 'page-break' || !store.disabledSections.includes(k)
 
 function select(key: string) {
   store.activeSectionTab = key
+  emit('close-manager')
 }
 
 // ── Reorder: native drag and drop + Alt+Arrow keys ──
@@ -68,13 +71,13 @@ async function startRename(key: SectionKey) {
   renaming.value = key
   renameValue.value = label(key)
   await nextTick()
-  document.querySelector<HTMLInputElement>('#section-rename')?.select()
+  renameInput.value?.select()
 }
 function commitRename() {
   if (!renaming.value) return
   const defaults = CV_LANGUAGE_SECTION_LABELS[store.language] || CV_LANGUAGE_SECTION_LABELS.English
   const v = renameValue.value.trim()
-  store.customSectionLabels[renaming.value] = v && v !== defaults?.[renaming.value] ? v : ''
+  store.updateSectionLabel(renaming.value, v && v !== defaults?.[renaming.value] ? v : '')
   renaming.value = null
 }
 </script>
@@ -89,7 +92,6 @@ function commitRename() {
     >
       <UIcon :name="ICONS.personal" class="size-4 shrink-0" />
       <span class="flex-1 truncate text-left">{{ t('personal_info') }}</span>
-      <UBadge v-if="countBySection.personal" color="warning" variant="soft" size="sm">{{ countBySection.personal }}</UBadge>
     </button>
 
     <USeparator class="my-1.5" />
@@ -120,10 +122,10 @@ function commitRename() {
       @dragend="dragIndex = null; overIndex = null"
     >
       <UIcon name="i-lucide-grip-vertical" class="size-3.5 shrink-0 text-dimmed cursor-grab opacity-0 group-hover:opacity-100" />
-      <UIcon :name="ICONS[key]" class="size-4 shrink-0" />
+      <UIcon :name="ICONS[key] || 'i-lucide-list'" class="size-4 shrink-0" />
       <input
         v-if="renaming === key"
-        id="section-rename"
+        ref="renameInput"
         v-model="renameValue"
         class="flex-1 min-w-0 bg-default border border-primary rounded px-1 text-sm"
         @keydown.enter.stop="commitRename"
@@ -132,8 +134,36 @@ function commitRename() {
         @click.stop
       />
       <span v-else class="flex-1 truncate text-left">{{ label(key) }}</span>
-      <UBadge v-if="enabled(key) && countBySection[key]" color="warning" variant="soft" size="sm">{{ countBySection[key] }}</UBadge>
-      <UTooltip :text="enabled(key) ? t('section_hide') : t('section_show')">
+      <UButton
+        v-if="key !== 'page-break'"
+        icon="i-lucide-pencil"
+        color="neutral"
+        variant="ghost"
+        size="xs"
+        :aria-label="`${t('rename_section')}: ${label(key)}`"
+        @click.stop="startRename(key)"
+      />
+      <template v-if="props.touchControls">
+        <UButton
+          icon="i-lucide-arrow-up"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          :disabled="index === 0"
+          :aria-label="`${t('move_section_up')}: ${label(key)}`"
+          @click.stop="move(index, index - 1)"
+        />
+        <UButton
+          icon="i-lucide-arrow-down"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          :disabled="index === store.sectionsOrder.length - 1"
+          :aria-label="`${t('move_section_down')}: ${label(key)}`"
+          @click.stop="move(index, index + 1)"
+        />
+      </template>
+      <UTooltip v-if="key !== 'page-break'" :text="enabled(key) ? t('section_hide') : t('section_show')">
         <UButton
           :icon="enabled(key) ? 'i-lucide-eye' : 'i-lucide-eye-off'"
           color="neutral"
@@ -144,7 +174,12 @@ function commitRename() {
           @click.stop="store.toggleSection(key)"
         />
       </UTooltip>
+      <UButton v-if="key === 'page-break'" icon="i-lucide-trash-2" color="neutral" variant="ghost" size="xs" :aria-label="store.uiLanguage === 'Vietnamese' ? 'Xóa ngắt trang' : 'Remove page break'" @click.stop="store.removePageBreak()" />
+      <UButton v-else-if="key.startsWith('custom:')" icon="i-lucide-trash-2" color="neutral" variant="ghost" size="xs" :aria-label="store.uiLanguage === 'Vietnamese' ? 'Xóa mục' : 'Delete section'" @click.stop="store.removeCustomSection(key)" />
     </div>
+
+    <UButton icon="i-lucide-plus" color="neutral" variant="soft" size="sm" class="mt-2" @click="store.addCustomSection(); emit('close-manager')">{{ store.uiLanguage === 'Vietnamese' ? 'Thêm mục' : 'Add section' }}</UButton>
+    <UButton v-if="!store.sectionsOrder.includes('page-break')" icon="i-lucide-file-minus-2" color="neutral" variant="soft" size="sm" class="mt-1" @click="store.addPageBreak(); emit('close-manager')">{{ store.uiLanguage === 'Vietnamese' ? 'Thêm ngắt trang' : 'Add page break' }}</UButton>
 
     <p class="text-[11px] leading-snug text-dimmed px-2 pt-2">{{ t('nav_help') }}</p>
   </nav>

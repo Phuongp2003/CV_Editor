@@ -139,7 +139,12 @@ function shortLink(url: string): string {
 function allText(cv: CVData): string {
   const parts: string[] = [cv.name, cv.location, cv.email, cv.phone, cv.summary, cv.objective]
   cv.experiences.forEach((e) => parts.push(e.position, e.company, e.location, e.dates, ...e.bullets.map((b) => b.text)))
-  cv.projects.forEach((p) => parts.push(p.projectName, ...p.bullets.map((b) => b.text)))
+  cv.projects.forEach((p) => parts.push(p.projectName, p.overview || '', p.dates || '', p.technologies || '', ...p.bullets.map((b) => b.text)))
+  cv.customSections?.forEach((section) => {
+    parts.push(section.title, section.summaryText || '')
+    section.skills?.forEach((skill) => parts.push(skill.skill, skill.description))
+    section.entries.forEach((entry) => parts.push(entry.position, entry.positionDates || '', entry.company, entry.location, entry.dates, ...entry.bullets.map((b) => b.text)))
+  })
   cv.skills.forEach((s) => parts.push(s.skill, s.description))
   cv.educations.forEach((e) => parts.push(e.university, e.degree, e.gpa, e.graduationDate))
   cv.certificates.forEach((c) => parts.push(c.certName, c['issuer/description'], c.certDate))
@@ -396,7 +401,8 @@ export function renderCv(o: RenderCvOptions): RenderCvResult {
     y += L.sectionGapBefore
     ensure(L.sectionGapAfter + L.lineH * 2)
     setFont('bold', L.headingSize)
-    const label = L.headingUpper ? o.sectionLabels[key].toUpperCase() : o.sectionLabels[key]
+    const rawLabel = o.sectionLabels[key] || cv.customSections?.find((section) => `custom:${section.id}` === key)?.title || key
+    const label = L.headingUpper ? rawLabel.toUpperCase() : rawLabel
     if (L.headingCentered) {
       textCenter(label, pageW / 2, y)
     } else {
@@ -447,7 +453,7 @@ export function renderCv(o: RenderCvOptions): RenderCvResult {
   const enabled = (k: SectionKey) => !o.disabledSections.includes(k)
   const org = (s: string) => (L.uppercaseOrg ? s.toUpperCase() : s)
 
-  const renderers: Record<SectionKey, () => void> = {
+  const renderers: Partial<Record<SectionKey, () => void>> = {
     summary() {
       if (!cv.summary?.trim()) return
       heading('summary')
@@ -511,7 +517,7 @@ export function renderCv(o: RenderCvOptions): RenderCvResult {
       })
     },
     projects() {
-      const rows = cv.projects.filter((p) => p.projectName?.trim() || p.bullets.length)
+      const rows = cv.projects.filter((p) => p.projectName?.trim() || p.overview?.trim() || p.bullets.length)
       if (!rows.length) return
       heading('projects')
       rows.forEach((p, i) => {
@@ -521,7 +527,14 @@ export function renderCv(o: RenderCvOptions): RenderCvResult {
         const display = link ? shortLink(link) : ''
         setFont('normal', L.body - 0.5)
         const lw = display ? tw(display) : 0
-        if (display && lw < width * 0.45) {
+        if (p.dates?.trim()) {
+          drawSplitLine(`**${org(p.projectName.trim())}**`, 'normal', p.dates.trim())
+          if (display) {
+            const linkY = y
+            drawWords(richWords(display), left, width, L.lineH, L.body, false)
+            doc.link(left, linkY - L.body * 0.8, Math.min(width, tw(display)), L.body, { url: cleanUrl(link) })
+          }
+        } else if (display && lw < width * 0.45) {
           color(L.linkColor)
           textRight(display, right, y)
           doc.link(right - lw, y - L.body * 0.8, lw, L.body, { url: cleanUrl(link) })
@@ -530,6 +543,8 @@ export function renderCv(o: RenderCvOptions): RenderCvResult {
         } else {
           drawWords(richWords(`**${org(p.projectName.trim())}**`), left, width, L.lineH, L.body, false)
         }
+        if (p.overview?.trim()) drawWords(richWords(p.overview.trim()), left, width, L.lineH, L.body, false)
+        if (p.technologies?.trim()) bullets([{ id: 'project-technologies', type: 'l1', text: `**Technologies:** ${p.technologies.trim()}` }])
         bullets(p.bullets)
       })
     },
@@ -555,7 +570,90 @@ export function renderCv(o: RenderCvOptions): RenderCvResult {
     },
   }
 
-  o.sectionsOrder.forEach((k) => enabled(k) && renderers[k]?.())
+  let hasRenderedSection = false
+  let pageBreakPending = false
+  const hasCustomContent = (key: SectionKey) => {
+    const section = cv.customSections?.find((item) => `custom:${item.id}` === key)
+    if (!section) return false
+    const preset = section.preset ?? 'experience'
+    if (preset === 'summary') return !!section.summaryText?.trim()
+    if (preset === 'skills') return !!section.skills?.some((skill) => skill.skill.trim() || skill.description.trim())
+    return section.entries.some((entry) => entry.company.trim() || entry.position.trim() || entry.bullets.length > 0)
+  }
+  const hasBuiltInContent = (key: SectionKey) => {
+    if (key === 'summary') return !!cv.summary?.trim()
+    if (key === 'objective') return !!cv.objective?.trim()
+    if (key === 'skills') return cv.skills.some((skill) => skill.skill.trim() || skill.description.trim())
+    if (key === 'experience') return cv.experiences.some((entry) => entry.company.trim() || entry.position.trim() || entry.bullets.length > 0)
+    if (key === 'projects') return cv.projects.some((project) => project.projectName.trim() || project.overview?.trim() || project.bullets.length > 0)
+    if (key === 'education') return cv.educations.some((entry) => entry.university.trim() || entry.degree.trim())
+    if (key === 'certificates') return cv.certificates.some((entry) => entry.certName.trim())
+    return false
+  }
+
+  o.sectionsOrder.forEach((k) => {
+    if (k === 'page-break') {
+      pageBreakPending = hasRenderedSection
+      return
+    }
+    if (!enabled(k)) return
+    const custom = k.startsWith('custom:')
+    const hasContent = custom ? hasCustomContent(k) : hasBuiltInContent(k)
+    if (!hasContent) return
+    if (pageBreakPending) {
+      doc.addPage('a4', 'p')
+      y = L.top + L.body
+      pageBreakPending = false
+    }
+
+    if (!custom) {
+      renderers[k]?.()
+      hasRenderedSection = true
+      return
+    }
+
+    const section = cv.customSections?.find((item) => `custom:${item.id}` === k)
+    if (!section) return
+    heading(k)
+    const preset = section.preset ?? 'experience'
+    if (preset === 'summary') {
+      drawWords(richWords(section.summaryText!.trim()), left, width, L.lineH)
+    } else if (preset === 'skills') {
+      section.skills?.forEach((skill, index) => {
+        if (index > 0) y += L.entryGap
+        const text = skill.skill.trim() ? `**${skill.skill.trim()}:** ${skill.description.trim()}` : skill.description.trim()
+        if (text) drawWords(richWords(text), left, width, L.lineH, L.body, false)
+      })
+    } else {
+      const style = section.experienceStyle ?? (section.preset ? 'hierarchy' : 'inherit')
+      section.entries.forEach((entry, index) => {
+        if (index > 0) y += L.entryGap
+        ensure(L.lineH * 3)
+        const company = entry.company.trim()
+        const position = entry.position.trim()
+        const location = entry.location.trim()
+        const dates = entry.dates.trim()
+        if (style === 'hierarchy') {
+          drawSplitLine(`**${org(company)}**${location ? `, ${location}` : ''}`, 'normal', section.showCompanyDates === false ? '' : dates)
+          if (section.showPosition && position) {
+            drawSplitLine(`*${position}*`, 'normal', section.showPositionDates ? entry.positionDates?.trim() || '' : '')
+          }
+        } else {
+          const headerStyle = style === 'inherit' ? o.experienceHeaderStyle : style
+          if (headerStyle === 'one-line') {
+            drawSplitLine([company && `**${org(company)}**`, position && `**${position}**`].filter(Boolean).join('  |  '), 'normal', dates)
+          } else if (headerStyle === 'role-company') {
+            drawSplitLine([position && `**${position}**`, company].filter(Boolean).join(', ') + (location ? `, ${location}` : ''), 'normal', dates)
+          } else {
+            drawSplitLine(`**${org(company)}**${location ? `, ${location}` : ''}`, 'normal', dates)
+            if (position) drawSplitLine(`*${position}*`, 'normal', '')
+          }
+        }
+        bullets(entry.bullets)
+      })
+    }
+    hasRenderedSection = true
+  })
 
   return { ok: true, doc, pages: doc.getNumberOfPages(), fontFellBack: font.fellBack }
 }

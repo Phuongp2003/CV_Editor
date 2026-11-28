@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch, watchEffect } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useCVStore } from '@/stores/cv'
 import { useI18n } from '@/composables/useI18n'
 import { useAudit } from '@/composables/useAudit'
 import { useImport } from '@/composables/useImport'
+import { useShareManager } from '@/composables/useShareManager'
 import { AI_TASKS, AI_ROLES, buildAiPrompt, buildSkillRequest, type AiTask, type AiRole } from '@/utils/aiPrompt'
-import { buildShareLink, findHandoffLink, looksLikeCvJson } from '@/utils/handoff'
+import { findHandoffLink, looksLikeCvJson } from '@/utils/handoff'
 
 const open = defineModel<boolean>('open', { default: false })
 const props = defineProps<{ initialTask?: AiTask }>()
@@ -14,6 +15,7 @@ const store = useCVStore()
 const { t } = useI18n()
 const { result: audit } = useAudit()
 const { importText } = useImport()
+const { createAndSaveShare } = useShareManager()
 
 const task = ref<AiTask>('create')
 function readRole(): AiRole {
@@ -27,13 +29,26 @@ const role = ref<AiRole>(readRole())
 const includeCv = ref(true)
 const reply = ref('')
 const copied = ref<'' | 'skill' | 'prompt'>('')
+const cvLink = ref<string | null>(null)
+
+async function refreshCvLink() {
+  if (!open.value || !includeCv.value || !store.hasContent()) {
+    cvLink.value = null
+    return
+  }
+  cvLink.value = (await createAndSaveShare(store.exportState(), store.cvData.name || 'Current CV')).url
+}
 
 watch(open, (v) => {
   if (!v) return
   task.value = props.initialTask ?? (store.hasContent() ? 'improve' : 'create')
-  includeCv.value = store.hasContent() && task.value !== 'create'
+  const nextIncludeCv = store.hasContent() && task.value !== 'create'
+  const changed = includeCv.value !== nextIncludeCv
+  includeCv.value = nextIncludeCv
   reply.value = ''
+  if (!changed) void refreshCvLink()
 })
+watch(includeCv, () => void refreshCvLink())
 watch(role, (v) => {
   try {
     globalThis.localStorage?.setItem('cv_aiRole', v)
@@ -45,16 +60,6 @@ watch(role, (v) => {
 const taskInfo = computed(() => AI_TASKS.find((x) => x.id === task.value)!)
 const siteUrl = computed(() => window.location.origin + (import.meta.env.BASE_URL || '/'))
 const skillZip = computed(() => `${siteUrl.value}cv-editor-skill.zip?v=${import.meta.env.VITE_APP_VERSION || '1.1.1'}`)
-
-// The agent gets the CV as a link it can decode with the skill's script, not as pasted JSON.
-const cvLink = ref<string | null>(null)
-watchEffect(async () => {
-  if (!open.value || !includeCv.value || !store.hasContent()) {
-    cvLink.value = null
-    return
-  }
-  cvLink.value = await buildShareLink(store.exportState())
-})
 
 const skillRequest = computed(() =>
   buildSkillRequest({

@@ -14,6 +14,9 @@ function addProject() {
   store.cvData.projects.push({
     projectName: '',
     projectLink: '',
+    overview: '',
+    dates: '',
+    technologies: '',
     bullets: [],
   } as Project)
   // Ensure the new project is not collapsed initially
@@ -36,6 +39,10 @@ function updateBullets(index: number, bullets: BulletPart[]) {
 
 <template>
   <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-1">
+      <label class="text-xs text-theme-text-sub font-semibold">{{ store.uiLanguage === 'Vietnamese' ? 'Dòng giới thiệu dự án' : 'Projects intro line' }}</label>
+      <input v-model="store.cvData.projectIntro" type="text" class="input-field" placeholder="Selected projects at PRIMAS Co. Ltd" />
+    </div>
     <DraggableList
       v-model="store.cvData.projects"
       dragWidth="420px"
@@ -62,9 +69,22 @@ function updateBullets(index: number, bullets: BulletPart[]) {
             <label class="text-xs text-theme-text-sub font-semibold">{{ t('project_link') }}</label>
             <input v-model="proj.projectLink" type="text" class="input-field" />
           </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-theme-text-sub font-semibold">{{ t('dates') }}</label>
+            <input v-model="proj.dates" type="text" class="input-field" placeholder="05/2024 - 11/2026" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-theme-text-sub font-semibold">{{ store.uiLanguage === 'Vietnamese' ? 'Công nghệ' : 'Technologies' }}</label>
+            <input v-model="proj.technologies" type="text" class="input-field" placeholder="C# · Python · TypeScript" />
+          </div>
+          <div class="col-span-2 flex flex-col gap-1">
+            <label class="text-xs text-theme-text-sub font-semibold">{{ store.uiLanguage === 'Vietnamese' ? 'Tổng quan dự án' : 'Project overview' }}</label>
+            <textarea v-model="proj.overview" rows="3" class="input-field resize-y" :placeholder="store.uiLanguage === 'Vietnamese' ? 'Hệ thống làm gì, thuộc domain nào, phục vụ ai, quy mô đã xác minh ra sao?' : 'What the system does, its domain and users, and its verified scope or scale'" />
+          </div>
         </div>
 
         <!-- Bullet Parts Editor -->
+        <p class="text-xs text-theme-text-muted">{{ t('project_contribution_help') }}</p>
         <BulletPartsEditor :bullets="proj.bullets" @update:bullets="updateBullets(index, $event)" />
 
         <!-- Collapsed Preview Slot -->

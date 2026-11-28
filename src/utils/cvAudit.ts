@@ -278,9 +278,12 @@ export function auditCv(input: AuditInput): AuditResult {
   const contextTexts = [...cv.experiences, ...cv.projects].flatMap((e) =>
     e.bullets.filter((b) => b.type === 'header').map((b) => plain(b.text)),
   )
+  const projectContext = !disabled.includes('projects')
+    ? cv.projects.flatMap((project) => [project.overview, project.technologies].map((value) => plain(value || '')).filter(Boolean))
+    : []
   const skillsOn = !disabled.includes('skills')
   const skillsText = skillsOn ? cv.skills.map((s) => `${s.skill}: ${plain(s.description)}`).join('\n') : ''
-  const fullText = [intro, skillsText, ...bulletTexts].join('\n')
+  const fullText = [intro, skillsText, ...projectContext, ...bulletTexts].join('\n')
   const totalWords = wordsOf(fullText).length
 
   // ── ATS ──
@@ -329,6 +332,7 @@ export function auditCv(input: AuditInput): AuditResult {
   }
 
   const oddLabels = Object.entries(input.customSectionLabels)
+    .filter(([k]) => k !== 'page-break')
     .filter(([k, v]) => v?.trim() && !disabled.includes(k as SectionKey))
     .filter(([, v]) => !STANDARD_HEADINGS.has(v.trim().toLowerCase()))
   if (oddLabels.length) {
@@ -421,8 +425,8 @@ export function auditCv(input: AuditInput): AuditResult {
       category: 'slop',
       title: bi('Same opening verb repeated', 'Lặp động từ mở đầu'),
       detail: bi(
-        'Vary openings: verb-first, outcome-first ("Login time dropped from ~60s to ~5s after..."), or context-first.',
-        'Đổi cách mở câu: bắt đầu bằng động từ, bằng kết quả ("Thời gian login giảm từ ~60s xuống ~5s sau khi..."), hoặc bằng bối cảnh.',
+        'Vary openings: verb-first, outcome-first ("Login time dropped from ~30s to ~5s after..."), or context-first.',
+        'Đổi cách mở câu: bắt đầu bằng động từ, bằng kết quả ("Thời gian login giảm từ ~30s xuống ~5s sau khi..."), hoặc bằng bối cảnh.',
       ),
       quotes: repeatedOpeners.map(([w, c]) => `${w} ×${c}`),
     })
@@ -606,8 +610,81 @@ export function auditCv(input: AuditInput): AuditResult {
     })
   }
 
+  if (!disabled.includes('projects')) {
+    const selectedProjects = cv.projects
+      .map((project, index) => ({ project, index }))
+      .filter(({ project }) =>
+        project.projectName.trim() || project.overview?.trim() || project.bullets.some((bullet) => plain(bullet.text)),
+      )
+    const datedProjects: { name: string; dates: string; start: number; end: number; index: number }[] = []
+    selectedProjects.forEach(({ project, index }) => {
+      const name = project.projectName.trim() || `Project ${index + 1}`
+      if (!project.overview?.trim()) {
+        add({
+          id: `ev-project-overview-${index}`,
+          severity: 'minor',
+          category: 'evidence',
+          title: bi(`${name}: add project context`, `${name}: bổ sung bối cảnh dự án`),
+          detail: bi(
+            'Introduce the real product or system: its domain, users, purpose and known scale. Keep the candidate\'s role and contribution in the bullets; use only verified scope.',
+            'Giới thiệu sản phẩm/hệ thống thật: domain, người dùng, mục đích và quy mô đã biết. Để vai trò, phần việc của ứng viên trong bullet; chỉ ghi phạm vi đã xác minh.',
+          ),
+          target: { section: 'projects', index },
+        })
+      }
+      if (!project.technologies?.trim()) {
+        add({
+          id: `ev-project-tech-${index}`,
+          severity: 'minor',
+          category: 'evidence',
+          title: bi(`${name}: identify the project stack`, `${name}: nêu công nghệ chính`),
+          detail: bi('Add one compact Technologies line with only the tools used to build or operate this project.', 'Thêm một dòng Technologies ngắn, chỉ gồm công cụ thực sự dùng để xây dựng hoặc vận hành dự án.'),
+          target: { section: 'projects', index },
+        })
+      }
+      const date = project.dates?.trim() || ''
+      const dateParts = [...date.matchAll(/(?:(\d{1,2})\/)?(\d{4})/g)]
+      if (!date || !dateParts.length) {
+        add({
+          id: `ev-project-dates-${index}`,
+          severity: 'minor',
+          category: 'evidence',
+          title: bi(`${name}: verify project dates`, `${name}: xác minh thời gian dự án`),
+          detail: bi('Add the verified project period so selected projects can be ordered newest first. Do not estimate dates.', 'Bổ sung khoảng thời gian đã xác minh để xếp dự án mới nhất trước. Không tự ước lượng ngày.'),
+          target: { section: 'projects', index },
+        })
+      } else {
+        const start = dateParts[0]!
+        const end = dateParts[dateParts.length - 1]!
+        datedProjects.push({
+          name,
+          dates: date,
+          start: Number(start[2]) * 12 + Number(start[1] || 1),
+          end: Number(end[2]) * 12 + Number(end[1] || 12),
+          index,
+        })
+      }
+    })
+    const outOfOrder = datedProjects.slice(1).find((project, index) => {
+      const previous = datedProjects[index]!
+      return project.end > previous.end || (project.end === previous.end && project.start > previous.start)
+    })
+    if (outOfOrder) {
+      const previous = datedProjects[datedProjects.indexOf(outOfOrder) - 1]!
+      add({
+        id: 'ev-project-order',
+        severity: 'minor',
+        category: 'evidence',
+        title: bi('Projects are not newest first', 'Dự án chưa được xếp mới nhất trước'),
+        detail: bi('Sort selected projects by verified end date, newest first; use the later start date when end dates tie.', 'Xếp dự án theo ngày kết thúc đã xác minh, mới nhất trước; nếu trùng ngày kết thúc thì dự án bắt đầu muộn hơn đứng trước.'),
+        quotes: [`${previous.name} (${previous.dates})`, `${outOfOrder.name} (${outOfOrder.dates})`],
+        target: { section: 'projects', index: outOfOrder.index },
+      })
+    }
+  }
+
   if (skillsOn) {
-    const body = [...bulletTexts, ...contextTexts].join(' ').toLowerCase()
+    const body = [...bulletTexts, ...contextTexts, ...projectContext].join(' ').toLowerCase()
     const terms = cv.skills
       .flatMap((s) => plain(s.description).split(/[,;|]/))
       .map((t) => t.replace(/\(.*?\)/g, '').trim())
@@ -640,7 +717,7 @@ export function auditCv(input: AuditInput): AuditResult {
       ...cv.certificates.map((c) => `${c.certName} ${c['issuer/description']}`),
       ...cv.educations.map((e) => `${e.degree} ${e.university}`),
     ].join(' ')
-    const body = [intro, ...bulletTexts, ...contextTexts, extra].join(' ')
+    const body = [intro, ...bulletTexts, ...contextTexts, ...projectContext, extra].join(' ')
     const proven: string[] = []
     const claimedOnly: string[] = []
     const missingTerms: string[] = []

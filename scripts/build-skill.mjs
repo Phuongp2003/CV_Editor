@@ -9,11 +9,13 @@ import { zipSync, strToU8 } from 'fflate'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const skillDir = join(root, 'skills', 'cv-editor')
+const writerSkillNames = ['cv-writer', 'cv-slop-review', 'cv-domain-se', 'cv-domain-qa-automation', 'cv-domain-industrial-automation']
 const pub = join(root, 'public')
 
 mkdirSync(join(pub, 'ai'), { recursive: true })
-copyFileSync(join(skillDir, 'references', 'writing-rules.md'), join(pub, 'ai', 'cv-writing-rules.md'))
-copyFileSync(join(skillDir, 'references', 'schema.json'), join(pub, 'ai', 'schema.json'))
+copyFileSync(join(root, 'skills', 'cv-writer', 'references', 'content.md'), join(pub, 'ai', 'cv-writing-rules.md'))
+copyFileSync(join(root, 'skills', 'cv-writer', 'references', 'content.schema.json'), join(pub, 'ai', 'schema.json'))
+copyFileSync(join(root, 'skills', 'cv-writer', 'references', 'config.schema.json'), join(pub, 'ai', 'config.schema.json'))
 
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {
@@ -69,3 +71,14 @@ files['.claude-plugin/plugin.json'] = [strToU8(JSON.stringify(claudePlugin, null
 const zip = zipSync(files, { level: 9 })
 writeFileSync(join(pub, 'cv-editor-skill.zip'), zip)
 console.log(`cv-editor-skill.zip: ${Object.keys(files).length} files, ${(zip.length / 1024).toFixed(1)} KB`)
+
+const writerFiles = {}
+for (const name of writerSkillNames) {
+  for (const file of walk(join(root, 'skills', name))) {
+    const rel = relative(join(root, 'skills', name), file).split(sep).join('/')
+    writerFiles[`${name}/${rel}`] = [readFileSync(file), { mtime: fixedDate }]
+  }
+}
+const writerZip = zipSync(writerFiles, { level: 9 })
+writeFileSync(join(pub, 'fynx-cv-writer-skill.zip'), writerZip)
+console.log(`fynx-cv-writer-skill.zip: ${Object.keys(writerFiles).length} files, ${(writerZip.length / 1024).toFixed(1)} KB`)

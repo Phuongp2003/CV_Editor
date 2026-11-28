@@ -78,11 +78,10 @@
     "closingParagraph": "",
     "signOff": ""
   },
-  "template": "harvard",
+  "template": "modern",
   "language": "English",
-  "selectedFont": "times",
-  "experienceHeaderStyle": "one-line",
-  "experienceCompanyMode": "separate-titles",
+  "selectedFont": "garamond",
+  "experienceHeaderStyle": "classic",
   "sectionsOrder": ["objective", "experience", "projects", "education", "skills", "certificates", "summary"],
   "disabledSections": ["summary"]
 }

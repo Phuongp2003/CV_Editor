@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """CV Editor helper for agents. Standard library only.
 
-  decode <link|file|-> [-o out.json]     #cv= link or pasted reply -> JSON
+  decode <link|file|-> [-o out.json]     #cv= or short Worker link -> JSON
   check  <cv.json> [--jd jd.txt] [--pages N] [--json]
   link   <cv.json> [--merge] [--site URL]
-  share  <cv.json> [--site URL] [--api URL]
   open   <cv.json> [--merge] [--site URL]
   text   <cv.json>
 
@@ -14,10 +13,8 @@ from __future__ import annotations
 
 import argparse
 import base64
-from datetime import datetime, timezone
 import json
 import math
-import os
 import re
 import sys
 import urllib.parse
@@ -27,7 +24,6 @@ import zlib
 from pathlib import Path
 
 SITE = "https://cv-editor.fynx.io.vn"
-SHARE_API = "https://cv-editor-share-worker.phambuinamphuong.workers.dev"
 
 # ─── Payload I/O ──────────────────────────────────────────────────────────────
 
@@ -58,14 +54,17 @@ def _b64url_decode(s: str) -> bytes:
 
 def decode_link(link: str) -> dict:
     parsed_url = urllib.parse.urlsplit(link.strip())
-    short_id = urllib.parse.parse_qs(parsed_url.query).get("cv", [None])[0]
-    if short_id:
-        request = urllib.request.Request(f"{SHARE_API}/api/shares/{urllib.parse.quote(short_id)}")
-        with urllib.request.urlopen(request, timeout=20) as response:
+    share_ids = urllib.parse.parse_qs(parsed_url.query).get("cv", [])
+    if share_ids:
+        request = urllib.request.Request(
+            f"https://cv-editor-share-worker.phambuinamphuong.workers.dev/api/shares/{urllib.parse.quote(share_ids[0], safe='')}",
+            headers={"Accept": "application/json"},
+        )
+        with urllib.request.urlopen(request, timeout=20) as response:  # noqa: S310 - fixed Fynx share endpoint
             result = json.loads(response.read().decode("utf-8"))
         payload = result.get("payload")
-        if not isinstance(payload, str):
-            raise ValueError("share service returned no CV payload")
+        if not isinstance(payload, str) or not payload:
+            raise ValueError("share link contains no CV payload")
         return parse_payload_text(zlib.decompress(_b64url_decode(payload), -15).decode("utf-8"))
     m = re.search(r"#(cv(?:-src)?)=([^\s)\]\"'<>]+)", link)
     if not m:
@@ -85,53 +84,12 @@ def decode_link(link: str) -> dict:
     return parse_payload_text(urllib.parse.unquote(value))
 
 
-def _packed_payload(data: dict) -> str:
+def encode_link(data: dict, site: str = SITE, merge: bool = False) -> str:
     raw = json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     c = zlib.compressobj(9, zlib.DEFLATED, -15)
     packed = c.compress(raw) + c.flush()
-    return base64.urlsafe_b64encode(packed).decode().rstrip("=")
-
-
-def _preview_url(site: str, *, packed: str | None = None, share_id: str | None = None) -> str:
-    parts = urllib.parse.urlsplit(site.rstrip("/") + "/")
-    query = urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
-    query = [(key, value) for key, value in query if key not in {"view", "cv"}]
-    query.append(("view", "preview"))
-    fragment = ""
-    if share_id:
-        query.append(("cv", share_id))
-    else:
-        fragment = f"cv=z:{packed}"
-    return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, urllib.parse.urlencode(query), fragment))
-
-
-def encode_link(data: dict, site: str = SITE, merge: bool = False) -> str:
-    link = _preview_url(site, packed=_packed_payload(data))
-    if merge:
-        parts = urllib.parse.urlsplit(link)
-        link = urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, parts.query, f"{parts.fragment}&mode=merge"))
-    return link
-
-
-def create_share_link(data: dict, site: str = SITE, api: str = SHARE_API) -> tuple[str, int | None]:
-    """Creates a short-lived Worker link and falls back to a self-contained preview URL."""
-    body = json.dumps({"payload": _packed_payload(data)}).encode("utf-8")
-    request = urllib.request.Request(
-        f"{api.rstrip('/')}/api/shares",
-        data=body,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=15) as response:
-            result = json.loads(response.read().decode("utf-8"))
-        share_id = result.get("id")
-        if not isinstance(share_id, str) or not share_id:
-            raise ValueError("share service returned no link id")
-        expires_at = result.get("expiresAt")
-        return _preview_url(site, share_id=share_id), expires_at if isinstance(expires_at, int) else None
-    except (OSError, TimeoutError, ValueError, json.JSONDecodeError):
-        return encode_link(data, site), None
+    link = f"{site.rstrip('/')}/#cv=z:{base64.urlsafe_b64encode(packed).decode().rstrip('=')}"
+    return link + ("&mode=merge" if merge else "")
 
 
 def load(path: str) -> dict:
@@ -290,7 +248,6 @@ def estimate_lines(data: dict) -> int:
     cv = cv_of(data)
     disabled = set(data.get("disabledSections", ["summary"]))
     one_line = data.get("experienceHeaderStyle") == "one-line"
-    company_mode = data.get("experienceCompanyMode", "separate-titles")
     wrap = lambda t, w=104: max(1, math.ceil(len(plain(t)) / w))
     n = 3
     for sec in data.get("sectionsOrder") or ["objective", "experience", "projects", "education", "skills", "certificates"]:
@@ -303,10 +260,7 @@ def estimate_lines(data: dict) -> int:
             prev = None
             for e in cv["experiences"]:
                 same = prev and prev.lower() == e.get("company", "").lower()
-                if same:
-                    n += 0 if company_mode == "single-title" else 1
-                else:
-                    n += 1 if one_line else 2
+                n += 1 if (one_line or same) else 2
                 n += sum(wrap(b.get("text", ""), 98) for b in e.get("bullets", []))
                 prev = e.get("company", "")
         elif sec == "projects" and cv.get("projects"):
@@ -402,7 +356,9 @@ def audit(data: dict, jd: str = "", pages: int = 0) -> dict:
                for b in e.get("bullets", []) if b.get("type") == "header"]
     skills_on = "skills" not in disabled
     skills_text = "\n".join(f"{s.get('skill', '')}: {plain(s.get('description', ''))}" for s in cv.get("skills", [])) if skills_on else ""
-    full = "\n".join([intro, skills_text, *texts])
+    project_context = [plain(value) for project in cv.get("projects", []) if "projects" not in disabled
+                       for value in (project.get("overview", ""), project.get("technologies", "")) if plain(value)]
+    full = "\n".join([intro, skills_text, *project_context, *texts])
     total_words = len(words(full))
 
     missing = [k for k in ("name", "email", "phone") if not str(cv.get(k, "")).strip()]
@@ -500,8 +456,36 @@ def audit(data: dict, jd: str = "", pages: int = 0) -> dict:
             if (e.get("company") or e.get("position")) and (n == 0 or n > 6 or (n < 2 and not same_org)):
                 add(f"ev-count-{i}", "major" if n == 0 else "minor", "evidence", f"{e.get('company') or e.get('position')}: {n} bullets",
                     "Aim for 3-5 bullets per role (1-2 is fine for an earlier role at the same company).", target=f"experience#{i}")
+    if "projects" not in disabled:
+        selected = [(i, p) for i, p in enumerate(cv.get("projects", []))
+                    if p.get("projectName", "").strip() or p.get("overview", "").strip()
+                    or any(plain(b.get("text", "")) for b in p.get("bullets", []))]
+        dated = []
+        for i, project in selected:
+            name = project.get("projectName", "").strip() or f"Project {i + 1}"
+            if not project.get("overview", "").strip():
+                add(f"ev-project-overview-{i}", "minor", "evidence", f"{name}: add project context",
+                    "Introduce the real product or system: its domain, users, purpose and known scale. Keep the candidate's role and contribution in the bullets; use only verified scope.", target=f"projects#{i}")
+            if not project.get("technologies", "").strip():
+                add(f"ev-project-tech-{i}", "minor", "evidence", f"{name}: identify the project stack",
+                    "Add one compact Technologies line with only the tools used to build or operate this project.", target=f"projects#{i}")
+            project_date = project.get("dates", "").strip()
+            date_parts = re.findall(r"(?:(\d{1,2})/)?(\d{4})", project_date)
+            if not project_date or not date_parts:
+                add(f"ev-project-dates-{i}", "minor", "evidence", f"{name}: verify project dates",
+                    "Add the verified project period so selected projects can be ordered newest first. Do not estimate dates.", target=f"projects#{i}")
+            else:
+                start, end = date_parts[0], date_parts[-1]
+                dated.append({"name": name, "dates": project_date, "start": int(start[1]) * 12 + int(start[0] or 1),
+                              "end": int(end[1]) * 12 + int(end[0] or 12), "index": i})
+        for previous, current in zip(dated, dated[1:]):
+            if current["end"] > previous["end"] or (current["end"] == previous["end"] and current["start"] > previous["start"]):
+                add("ev-project-order", "minor", "evidence", "Projects are not newest first",
+                    "Sort selected projects by verified end date, newest first; use the later start date when end dates tie.",
+                    [f"{previous['name']} ({previous['dates']})", f"{current['name']} ({current['dates']})"], f"projects#{current['index']}")
+                break
     if skills_on:
-        body = " ".join(texts + context).lower()
+        body = " ".join(texts + context + project_context).lower()
         terms = []
         for s in cv.get("skills", []):
             for t in re.split(r"[,;|]", plain(s.get("description", ""))):
@@ -518,7 +502,7 @@ def audit(data: dict, jd: str = "", pages: int = 0) -> dict:
     if jd.strip():
         extra = " ".join(f"{c.get('certName', '')} {c.get('issuer/description', '')}" for c in cv.get("certificates", []))
         extra += " " + " ".join(f"{e.get('degree', '')} {e.get('university', '')}" for e in cv.get("educations", []))
-        body = " ".join([intro, *texts, *context, extra])
+        body = " ".join([intro, *texts, *context, *project_context, extra])
         for t in jd_terms_of(jd):
             if has_term(body, t):
                 jd_table["proven"].append(t)
@@ -573,28 +557,9 @@ def as_text(data: dict) -> str:
             out += [sec.upper(), plain(cv[sec]), ""]
         elif sec == "experience" and cv.get("experiences"):
             out.append("EXPERIENCE")
-            prev_company = ""
-            company_mode = data.get("experienceCompanyMode", "separate-titles")
             for e in cv["experiences"]:
-                company = e.get("company", "")
-                position = e.get("position", "")
-                dates = e.get("dates", "")
-                same = bool(company and prev_company.lower() == company.lower())
-                if same and company_mode != "single-title":
-                    out.append(f"  {position}    {dates}")
-                elif not same:
-                    out.append(f"{company} | {position}    {dates}")
-                bullets = e.get("bullets", [])
-                if same and company_mode == "single-title":
-                    role_label = " · ".join(x for x in [position, dates] if x)
-                    first_detail = next((i for i, b in enumerate(bullets) if b.get("type") != "header" and b.get("text", "").strip()), None)
-                    if first_detail is None and role_label:
-                        bullets = [*bullets, {"type": "l1", "text": role_label}]
-                    elif first_detail is not None:
-                        bullets = [dict(b) for b in bullets]
-                        bullets[first_detail]["text"] = f"{role_label}: {bullets[first_detail].get('text', '')}"
-                out += [("  " if b.get("type") == "header" else "  - ") + plain(b.get("text", "")) for b in bullets]
-                prev_company = company
+                out.append(f"{e.get('company', '')} | {e.get('position', '')}    {e.get('dates', '')}")
+                out += [("  " if b.get("type") == "header" else "  - ") + plain(b.get("text", "")) for b in e.get("bullets", [])]
             out.append("")
         elif sec == "projects" and cv.get("projects"):
             out.append("PROJECTS")
@@ -633,10 +598,6 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("file")
         p.add_argument("--merge", action="store_true")
         p.add_argument("--site", default=SITE)
-    sh = sub.add_parser("share")
-    sh.add_argument("file")
-    sh.add_argument("--site", default=SITE)
-    sh.add_argument("--api", default=os.environ.get("CV_EDITOR_SHARE_API_URL", SHARE_API))
     t = sub.add_parser("text")
     t.add_argument("file")
     a = ap.parse_args(argv)
@@ -663,15 +624,6 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     data = load(a.file)
-    if a.cmd == "share":
-        link, expires_at = create_share_link(data, a.site, a.api)
-        print(link)
-        if expires_at:
-            expiry = datetime.fromtimestamp(expires_at / 1000, tz=timezone.utc).isoformat()
-            print(f"Short share link expires at {expiry} UTC (3 days). Anyone with the link can view this CV.", file=sys.stderr)
-        else:
-            print("Share Worker unavailable; returned a self-contained offline preview link instead.", file=sys.stderr)
-        return 0
     if a.cmd == "check":
         jd = Path(a.jd).read_text(encoding="utf-8") if a.jd else ""
         r = audit(data, jd, a.pages)
