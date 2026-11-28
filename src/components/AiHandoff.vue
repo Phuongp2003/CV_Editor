@@ -44,7 +44,7 @@ watch(role, (v) => {
 
 const taskInfo = computed(() => AI_TASKS.find((x) => x.id === task.value)!)
 const siteUrl = computed(() => window.location.origin + (import.meta.env.BASE_URL || '/'))
-const skillZip = computed(() => `${siteUrl.value}cv-editor-skill.zip?v=${import.meta.env.VITE_APP_VERSION || '1.1.0'}`)
+const skillZip = computed(() => `${siteUrl.value}cv-editor-skill.zip?v=${import.meta.env.VITE_APP_VERSION || '1.1.1'}`)
 
 // The agent gets the CV as a link it can decode with the skill's script, not as pasted JSON.
 const cvLink = ref<string | null>(null)

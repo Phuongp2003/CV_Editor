@@ -119,7 +119,7 @@ export function buildSkillRequest(p: SkillRequestInput): string {
   const role = AI_ROLES.find((r) => r.id === p.role) ?? AI_ROLES[0]!
   const site = p.siteUrl.replace(/\/+$/, '')
   const lines = [
-    `Use the cv-editor skill (if you do not have it: ${site}/cv-editor-skill.zip?v=1.1.0).`,
+    `Use the cv-editor skill (if you do not have it: ${site}/cv-editor-skill.zip?v=1.1.1).`,
     `Task: ${TASK_SHORT[p.task]}`,
     `Field: ${role.label}. CV language: ${p.cvLanguage}. Talk to me in ${p.chatLanguage}.`,
   ]

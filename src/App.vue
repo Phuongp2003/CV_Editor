@@ -60,7 +60,6 @@ async function copyShareLink() {
 
 const moreItems = computed(() => [
   [
-    { label: t('import_file'), icon: 'i-lucide-file-up', onSelect: () => (isImportOpen.value = true) },
     { label: t('share_link'), icon: 'i-lucide-link', onSelect: copyShareLink },
   ],
   [
@@ -162,6 +161,14 @@ onUnmounted(() => {
           :ui="{ label: 'hidden sm:inline' }"
           @click="openAi()"
         />
+        <UButton
+          class="hidden lg:inline-flex"
+          icon="i-lucide-file-up"
+          color="neutral"
+          variant="outline"
+          :label="store.activeWorkspace === 'cv' ? t('import_cv') : t('import_file')"
+          @click="isImportOpen = true"
+        />
         <UTooltip :text="t('check_tooltip')">
           <UButton color="neutral" variant="outline" @click="isCheckOpen = true">
             <UChip :color="scoreColor" size="lg" standalone inset />
@@ -177,7 +184,7 @@ onUnmounted(() => {
       </header>
 
       <!-- Mobile pane switch -->
-      <div v-if="!showWelcome" class="lg:hidden px-3 pt-3">
+      <div v-if="!showWelcome" class="lg:hidden px-3 pt-3 flex items-center gap-2">
         <UTabs
           v-model="mobilePane"
           :items="[
@@ -186,6 +193,16 @@ onUnmounted(() => {
           ]"
           :content="false"
           size="sm"
+          class="flex-1 min-w-0"
+        />
+        <UButton
+          color="neutral"
+          variant="outline"
+          size="sm"
+          icon="i-lucide-file-up"
+          class="shrink-0"
+          :label="store.activeWorkspace === 'cv' ? t('import_cv') : t('import_file')"
+          @click="isImportOpen = true"
         />
       </div>
 
