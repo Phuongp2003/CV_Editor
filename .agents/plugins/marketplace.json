@@ -1,0 +1,12 @@
+{
+  "name": "fynx-cv-tools",
+  "interface": { "displayName": "Fynx CV tools" },
+  "plugins": [
+    {
+      "name": "fynx-cv-writer",
+      "source": { "source": "local", "path": "./plugins/fynx-cv-writer" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    }
+  ]
+}
