@@ -4,6 +4,7 @@
   decode <link|file|-> [-o out.json]     #cv= link or pasted reply -> JSON
   check  <cv.json> [--jd jd.txt] [--pages N] [--json]
   link   <cv.json> [--merge] [--site URL]
+  share  <cv.json> [--site URL] [--api URL]
   open   <cv.json> [--merge] [--site URL]
   text   <cv.json>
 
@@ -13,8 +14,10 @@ from __future__ import annotations
 
 import argparse
 import base64
+from datetime import datetime, timezone
 import json
 import math
+import os
 import re
 import sys
 import urllib.parse
@@ -24,6 +27,7 @@ import zlib
 from pathlib import Path
 
 SITE = "https://cv-editor.fynx.io.vn"
+SHARE_API = "https://cv-editor-share-worker.phambuinamphuong.workers.dev"
 
 # ─── Payload I/O ──────────────────────────────────────────────────────────────
 
@@ -53,6 +57,16 @@ def _b64url_decode(s: str) -> bytes:
 
 
 def decode_link(link: str) -> dict:
+    parsed_url = urllib.parse.urlsplit(link.strip())
+    short_id = urllib.parse.parse_qs(parsed_url.query).get("cv", [None])[0]
+    if short_id:
+        request = urllib.request.Request(f"{SHARE_API}/api/shares/{urllib.parse.quote(short_id)}")
+        with urllib.request.urlopen(request, timeout=20) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        payload = result.get("payload")
+        if not isinstance(payload, str):
+            raise ValueError("share service returned no CV payload")
+        return parse_payload_text(zlib.decompress(_b64url_decode(payload), -15).decode("utf-8"))
     m = re.search(r"#(cv(?:-src)?)=([^\s)\]\"'<>]+)", link)
     if not m:
         return parse_payload_text(link)
@@ -71,12 +85,53 @@ def decode_link(link: str) -> dict:
     return parse_payload_text(urllib.parse.unquote(value))
 
 
-def encode_link(data: dict, site: str = SITE, merge: bool = False) -> str:
+def _packed_payload(data: dict) -> str:
     raw = json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     c = zlib.compressobj(9, zlib.DEFLATED, -15)
     packed = c.compress(raw) + c.flush()
-    link = f"{site.rstrip('/')}/#cv=z:{base64.urlsafe_b64encode(packed).decode().rstrip('=')}"
-    return link + ("&mode=merge" if merge else "")
+    return base64.urlsafe_b64encode(packed).decode().rstrip("=")
+
+
+def _preview_url(site: str, *, packed: str | None = None, share_id: str | None = None) -> str:
+    parts = urllib.parse.urlsplit(site.rstrip("/") + "/")
+    query = urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+    query = [(key, value) for key, value in query if key not in {"view", "cv"}]
+    query.append(("view", "preview"))
+    fragment = ""
+    if share_id:
+        query.append(("cv", share_id))
+    else:
+        fragment = f"cv=z:{packed}"
+    return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, urllib.parse.urlencode(query), fragment))
+
+
+def encode_link(data: dict, site: str = SITE, merge: bool = False) -> str:
+    link = _preview_url(site, packed=_packed_payload(data))
+    if merge:
+        parts = urllib.parse.urlsplit(link)
+        link = urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, parts.query, f"{parts.fragment}&mode=merge"))
+    return link
+
+
+def create_share_link(data: dict, site: str = SITE, api: str = SHARE_API) -> tuple[str, int | None]:
+    """Creates a short-lived Worker link and falls back to a self-contained preview URL."""
+    body = json.dumps({"payload": _packed_payload(data)}).encode("utf-8")
+    request = urllib.request.Request(
+        f"{api.rstrip('/')}/api/shares",
+        data=body,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        share_id = result.get("id")
+        if not isinstance(share_id, str) or not share_id:
+            raise ValueError("share service returned no link id")
+        expires_at = result.get("expiresAt")
+        return _preview_url(site, share_id=share_id), expires_at if isinstance(expires_at, int) else None
+    except (OSError, TimeoutError, ValueError, json.JSONDecodeError):
+        return encode_link(data, site), None
 
 
 def load(path: str) -> dict:
@@ -578,6 +633,10 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("file")
         p.add_argument("--merge", action="store_true")
         p.add_argument("--site", default=SITE)
+    sh = sub.add_parser("share")
+    sh.add_argument("file")
+    sh.add_argument("--site", default=SITE)
+    sh.add_argument("--api", default=os.environ.get("CV_EDITOR_SHARE_API_URL", SHARE_API))
     t = sub.add_parser("text")
     t.add_argument("file")
     a = ap.parse_args(argv)
@@ -604,6 +663,15 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     data = load(a.file)
+    if a.cmd == "share":
+        link, expires_at = create_share_link(data, a.site, a.api)
+        print(link)
+        if expires_at:
+            expiry = datetime.fromtimestamp(expires_at / 1000, tz=timezone.utc).isoformat()
+            print(f"Short share link expires at {expiry} UTC (3 days). Anyone with the link can view this CV.", file=sys.stderr)
+        else:
+            print("Share Worker unavailable; returned a self-contained offline preview link instead.", file=sys.stderr)
+        return 0
     if a.cmd == "check":
         jd = Path(a.jd).read_text(encoding="utf-8") if a.jd else ""
         r = audit(data, jd, a.pages)

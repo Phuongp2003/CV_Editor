@@ -17,11 +17,13 @@ Your output is a JSON payload (shape: `references/schema.json`) plus a link that
 python <skill>/scripts/cv_tool.py decode "<#cv= link or file>" -o cv.json
 python <skill>/scripts/cv_tool.py check cv.json --jd jd.txt
 python <skill>/scripts/cv_tool.py text cv.json
-python <skill>/scripts/cv_tool.py link cv.json            # add --merge for a partial update
+python <skill>/scripts/cv_tool.py link cv.json            # offline, self-contained preview link
+python <skill>/scripts/cv_tool.py share cv.json            # short link; falls back to offline if Worker is unavailable
 python <skill>/scripts/cv_tool.py open cv.json            # desktop agents: also opens the browser
 ```
 
 - `check` prints a score, a JD coverage table (proven / only in Skills / absent), an estimated length (about 62 lines fit on one page), and findings ranked blocker, major, minor. Exit code 1 means a blocker. It is the same check as the site's Check panel, from structure only, not an AI detector.
+- `share` creates a short link that expires after three days; anyone with that link can view the CV until expiry. If the Worker is unavailable, it returns the self-contained offline link instead. Use `link` when the user wants an offline link with no server storage.
 - `text` shows the CV the way a recruiter skims it. Read it once before handing off.
 
 ## Workflow
@@ -38,7 +40,7 @@ python <skill>/scripts/cv_tool.py open cv.json            # desktop agents: also
    Sources: the user's words, the old CV, a repository you can read (`git shortlog -sne`, `git log --author=<name> --format='%ad %s'`), a public page. Then ask in one batch of 3-6 numbered questions, each tied to a bullet: what was broken, what they did, which tool, how it was measured, what they personally owned. Continue with what you know; never block on answers.
 3. **Write the JSON.** Read `references/writing-rules.md` first. Never invent numbers, tools, dates, titles or scope; write without a number rather than guess one.
 4. **Check and fix.** Run `check` with the JD. Fix every blocker and major you can fix truthfully, re-run. Absent JD terms stay absent unless the user confirms them. If the JD asks for more years than the dates show, say so to the user; never stretch dates.
-5. **Hand off.** Run `link` (or `open`) and give the user the link. Opening a full link **replaces** the CV currently open in their browser; the site shows an Undo button. For small edits send only the changed keys with `--merge`. The link carries their contact details and is about 3 KB: if a chat cuts it, give the JSON block instead (the user presses Ctrl+V on the site).
+5. **Hand off.** Run `share` when the user asks to share a CV; run `link` for an offline self-contained link. Opening a full link **replaces** the CV currently open in their browser; the site shows an Undo button. For small edits send only the changed keys with `--merge`. Both links carry personal CV data; short links expire after three days, while offline links keep their data in the URL. If a link is too long or a chat cuts it, give the JSON block instead (the user presses Ctrl+V on the site).
 6. **Report briefly:** what changed and why, open questions, and 5-8 interview questions the CV invites, so the user can check they can defend every bullet.
 
 ## Many job posts

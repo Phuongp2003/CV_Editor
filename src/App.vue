@@ -6,7 +6,8 @@ import { useCVStore } from '@/stores/cv'
 import { useAudit } from '@/composables/useAudit'
 import { useImport } from '@/composables/useImport'
 import { installAgentApi } from '@/utils/agentApi'
-import { buildShareLink, looksLikeCvJson, findHandoffLink } from '@/utils/handoff'
+import { looksLikeCvJson, findHandoffLink } from '@/utils/handoff'
+import { useShareManager } from '@/composables/useShareManager'
 import type { AiTask } from '@/utils/aiPrompt'
 import CVEditor from '@/components/CVEditor.vue'
 import CVPlayer from '@/components/CVPlayer'
@@ -18,6 +19,7 @@ import ImportModal from '@/components/ImportModal.vue'
 import DownloadMenu from '@/components/DownloadMenu.vue'
 import AiHandoff from '@/components/AiHandoff.vue'
 import CheckPanel from '@/components/CheckPanel.vue'
+import ShareModal from '@/components/ShareModal.vue'
 import Welcome from '@/components/Welcome.vue'
 
 const store = useCVStore()
@@ -25,6 +27,7 @@ const { t } = useI18n()
 const toast = useToast()
 const { result: audit, scoreColor } = useAudit()
 const { importText, importFromLocation } = useImport()
+const { createAndSaveShare } = useShareManager()
 
 const isSettingsOpen = ref(false)
 const isImportOpen = ref(false)
@@ -33,8 +36,10 @@ const presetMode = ref<'load' | 'save'>('load')
 const isAiOpen = ref(false)
 const aiTask = ref<AiTask | undefined>()
 const isCheckOpen = ref(false)
+const isShareOpen = ref(false)
 const startedBlank = ref(false)
-const mobilePane = ref<'edit' | 'preview'>('edit')
+const initialPane = new URLSearchParams(window.location.search).get('view') === 'preview' ? 'preview' : 'edit'
+const mobilePane = ref<'edit' | 'preview'>(initialPane)
 const isDragging = ref(false)
 
 const showWelcome = computed(
@@ -53,14 +58,22 @@ function openPresets(mode: 'load' | 'save') {
 }
 
 async function copyShareLink() {
-  const link = await buildShareLink(store.exportState())
-  await navigator.clipboard.writeText(link)
-  toast.add({ title: t('share_copied'), description: t('share_copied_desc'), icon: 'i-lucide-link', color: 'success' })
+  const title = store.cvData.name || 'Untitled CV'
+  const res = await createAndSaveShare(store.exportState(), title)
+  await navigator.clipboard.writeText(res.url)
+  toast.add({
+    title: t('share_copied'),
+    description: res.isShort ? t('share_copied_short_desc') : t('share_copied_desc'),
+    icon: 'i-lucide-link',
+    color: 'success',
+    actions: [{ label: t('share_manage'), color: 'neutral', variant: 'outline', onClick: () => { isShareOpen.value = true } }],
+  })
 }
 
 const moreItems = computed(() => [
   [
     { label: t('share_link'), icon: 'i-lucide-link', onSelect: copyShareLink },
+    { label: t('share_manage'), icon: 'i-lucide-folder-symlink', onSelect: () => (isShareOpen.value = true) },
   ],
   [
     { label: t('preset_save'), icon: 'i-lucide-save', onSelect: () => openPresets('save') },
@@ -236,6 +249,7 @@ onUnmounted(() => {
       <CheckPanel v-model:open="isCheckOpen" @fix-with-ai="openAi('improve')" />
       <SettingsDrawer v-model="isSettingsOpen" />
       <ProfilePresets v-model:open="isPresetOpen" :mode="presetMode" />
+      <ShareModal v-model:open="isShareOpen" />
       <ImportModal v-model="isImportOpen" />
     </div>
   </UApp>

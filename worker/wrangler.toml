@@ -1,0 +1,21 @@
+name = "cv-editor-share-worker"
+main = "src/index.ts"
+compatibility_date = "2025-05-01"
+
+[vars]
+ALLOWED_ORIGINS = "https://cv-editor.fynx.io.vn,http://localhost:5173,http://127.0.0.1:5173"
+TTL_DAYS = "3"
+IP_DAILY_LIMIT = "100"
+MAX_PAYLOAD_BYTES = "65536"
+GLOBAL_DAILY_REQUESTS_LIMIT = "40000"
+GLOBAL_DAILY_WRITES_LIMIT = "40000"
+GLOBAL_DAILY_READS_LIMIT = "2000000"
+MAX_DB_BYTES = "209715200"
+
+[triggers]
+crons = ["0 */6 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cv-editor-shares"
+database_id = "2c30bbec-d6c5-4b68-a2e5-ba13304084fc"

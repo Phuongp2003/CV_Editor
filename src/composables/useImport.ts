@@ -2,6 +2,7 @@ import { useToast } from '@nuxt/ui/composables'
 import { useCVStore } from '@/stores/cv'
 import { useI18n } from '@/composables/useI18n'
 import {
+  clearHandoffFromUrl,
   findHandoffLink,
   inferMode,
   looksLikeCvJson,
@@ -58,7 +59,7 @@ export function useImport() {
     }
   }
 
-  /** Imports a "#cv=..." link from the current address, then removes it from the URL. */
+  /** Imports a "#cv=..." or "?cv=..." link from the current address, then removes it from the URL. */
   async function importFromLocation(): Promise<boolean> {
     try {
       const h = await readHandoffFromUrl()
@@ -69,8 +70,9 @@ export function useImport() {
       fail(e)
       return false
     } finally {
-      if (/^#cv(-src)?=/.test(window.location.hash)) {
-        window.history.replaceState(null, '', window.location.pathname + window.location.search)
+      const hasQueryCv = new URLSearchParams(window.location.search).has('cv')
+      if (hasQueryCv || /^#cv(-src)?=/.test(window.location.hash)) {
+        clearHandoffFromUrl()
       }
     }
   }
