@@ -7,11 +7,11 @@ The writer returns the final content JSON and an exact preview link containing t
 ## Install from the GitHub marketplace
 
 ```bash
-codex plugin marketplace add Phuongp2003/CV_Editor
+codex plugin marketplace add Phuongp2003/CV_Editor@feature/fynx-cv-plugin-web-installer
 codex plugin add fynx-cv-writer@fynx-cv-tools
 ```
 
-For ChatGPT web, a workspace admin can import the repository marketplace from **Admin Console → Plugins → Add → Import marketplace** using `https://github.com/Phuongp2003/CV_Editor` as the source. Alternatively, an eligible admin can upload this plugin ZIP.
+For ChatGPT web, a workspace admin can import the repository marketplace from **Admin Console → Plugins → Add → Import marketplace** using `https://github.com/Phuongp2003/CV_Editor` as the source and `feature/fynx-cv-plugin-web-installer` as the branch. Alternatively, an eligible admin can upload this plugin ZIP.
 
 ## Use the CLI
 
